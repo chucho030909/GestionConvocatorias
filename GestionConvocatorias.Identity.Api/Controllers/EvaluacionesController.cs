@@ -61,7 +61,7 @@ public class EvaluacionesController : ControllerBase
             CalificacionSustentabilidad = dto.CalificacionSustentabilidad,
             CalificacionModeloNegocio = dto.CalificacionModeloNegocio,
             PuntajeTotal = Math.Round(puntajeTotal, 2),
-            Comentarios = dto.Comentarios,
+            ObservacionesGenerales = dto.ObservacionesGenerales,
             FechaEvaluacion = DateTime.UtcNow
         };
 

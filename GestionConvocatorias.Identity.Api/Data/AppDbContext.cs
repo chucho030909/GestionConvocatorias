@@ -17,12 +17,12 @@ public class AppDbContext : IdentityDbContext<Usuario, IdentityRole<int>, int>
     public DbSet<ProyectoEstudiante> ProyectoEstudiantes { get; set; }
     public DbSet<Documento> Documentos { get; set; }
     public DbSet<Evaluacion> Evaluaciones { get; set; }
-    public DbSet<Comentario> Comentarios { get; set; }
     public DbSet<Avance> Avances { get; set; }
     public DbSet<Notificacion> Notificaciones { get; set; }
     public DbSet<EventoCalendario> EventosCalendario { get; set; }
     public DbSet<Mensaje> Mensajes { get; set; }
     public DbSet<InvitacionEvaluador> InvitacionesEvaluador { get; set; }
+    public DbSet<ConvocatoriaEstudiante> ConvocatoriaEstudiantes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,11 +56,6 @@ public class AppDbContext : IdentityDbContext<Usuario, IdentityRole<int>, int>
 
         modelBuilder.Entity<Proyecto>()
             .HasOne(p => p.Evaluador)
-            .WithMany()
-            .OnDelete(DeleteBehavior.NoAction);
-
-        modelBuilder.Entity<Comentario>()
-            .HasOne(c => c.Usuario)
             .WithMany()
             .OnDelete(DeleteBehavior.NoAction);
 
@@ -104,5 +99,29 @@ public class AppDbContext : IdentityDbContext<Usuario, IdentityRole<int>, int>
         modelBuilder.Entity<InvitacionEvaluador>()
             .HasIndex(i => i.Token)
             .IsUnique();
+
+        modelBuilder.Entity<Proyecto>()
+            .HasIndex(p => p.Folio)
+            .IsUnique();
+
+        modelBuilder.Entity<Convocatoria>()
+            .HasIndex(c => c.Clave)
+            .IsUnique();
+
+        modelBuilder.Entity<ConvocatoriaEstudiante>()
+            .HasIndex(ce => new { ce.ConvocatoriaId, ce.UsuarioId })
+            .IsUnique();
+
+        modelBuilder.Entity<ConvocatoriaEstudiante>()
+            .HasOne(ce => ce.Convocatoria)
+            .WithMany()
+            .HasForeignKey(ce => ce.ConvocatoriaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ConvocatoriaEstudiante>()
+            .HasOne(ce => ce.Usuario)
+            .WithMany()
+            .HasForeignKey(ce => ce.UsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

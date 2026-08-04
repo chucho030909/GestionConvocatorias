@@ -136,7 +136,7 @@ export default function Retroalimentacion() {
 
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
-            Comentarios del comité evaluador
+            Observaciones del comité evaluador
           </h2>
 
           <div className="space-y-5">
@@ -153,13 +153,13 @@ export default function Retroalimentacion() {
             ))}
           </div>
 
-          {evaluacion.comentarios && (
+          {evaluacion.observacionesGenerales && (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                 Observaciones generales
               </p>
               <p className="text-sm text-gray-700 leading-relaxed">
-                {evaluacion.comentarios}
+                {evaluacion.observacionesGenerales}
               </p>
             </div>
           )}

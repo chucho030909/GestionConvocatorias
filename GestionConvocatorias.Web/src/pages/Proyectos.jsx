@@ -4,7 +4,6 @@ import api, {
   actualizarEspecialidades,
   asignarProyecto,
   crearAvance,
-  crearComentario,
 } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 
@@ -41,10 +40,8 @@ export default function Proyectos() {
   const [evalData, setEvalData] = useState({
     calificacionInnovacion: 1,
     calificacionViabilidad: 1,
-    comentarios: '',
+    observacionesGenerales: '',
   });
-
-  // Modal: estado (DocenteAsesor / Coordinador)
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
   const [proyectoEstado, setProyectoEstado] = useState(null);
   const [estadoSeleccionado, setEstadoSeleccionado] = useState('');
@@ -55,9 +52,6 @@ export default function Proyectos() {
   const [asignacion, setAsignacion] = useState({ docenteAsesorId: '', evaluadorId: '' });
   const [docentes, setDocentes] = useState([]);
   const [evaluadores, setEvaluadores] = useState([]);
-
-  // Comentarios (DocenteAsesor)
-  const [comentario, setComentario] = useState('');
 
   // IA
   const [evaluadoresSugeridos, setEvaluadoresSugeridos] = useState([]);
@@ -144,11 +138,11 @@ export default function Proyectos() {
         proyectoId: proyectoAEvaluar,
         calificacionInnovacion: Number(evalData.calificacionInnovacion),
         calificacionViabilidad: Number(evalData.calificacionViabilidad),
-        comentarios: evalData.comentarios,
+        observacionesGenerales: evalData.observacionesGenerales,
       });
       setIsEvalModalOpen(false);
       setProyectoAEvaluar(null);
-      setEvalData({ calificacionInnovacion: 1, calificacionViabilidad: 1, comentarios: '' });
+      setEvalData({ calificacionInnovacion: 1, calificacionViabilidad: 1, observacionesGenerales: '' });
     } catch (err) {
       console.error(err);
     }
@@ -229,7 +223,7 @@ export default function Proyectos() {
       {cargando ? (
         <p className="text-gray-500 mt-6">Cargando…</p>
       ) : (
-        <table className="w-full mt-6 bg-white shadow-md rounded-lg overflow-hidden">
+        <table className="w-full mt-6 bg-white shadow-md rounded-lg">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
               <th className="px-4 py-3">Título</th>
@@ -278,26 +272,15 @@ export default function Proyectos() {
                     </>
                   )}
                   {rol === ROLES.DOCENTE_ASESOR && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setProyectoEstado(p.id);
-                          setIsEstadoModalOpen(true);
-                        }}
-                        className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-purple-700"
-                      >
-                        Cambiar Estado
-                      </button>
-                      <button
-                        onClick={() => {
-                          crearComentario({ proyectoId: p.id, texto: comentario });
-                          setComentario('');
-                        }}
-                        className="bg-blue-800 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-900"
-                      >
-                        Comentar
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        setProyectoEstado(p.id);
+                        setIsEstadoModalOpen(true);
+                      }}
+                      className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-purple-700"
+                    >
+                      Cambiar Estado
+                    </button>
                   )}
                   {rol === ROLES.EVALUADOR && (
                     <button
@@ -348,19 +331,6 @@ export default function Proyectos() {
         </table>
       )}
 
-      {/* DocenteAsesor: textarea de observaciones */}
-      {rol === ROLES.DOCENTE_ASESOR && (
-        <div className="mt-6 bg-white p-4 rounded-lg shadow-md">
-          <h2 className="font-semibold mb-2">Observaciones generales</h2>
-          <textarea
-            value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
-            placeholder="Escribe una observación para el proyecto seleccionado…"
-            className="w-full border p-2 mb-4 rounded"
-          />
-        </div>
-      )}
-
       {/* Modal: Nuevo Proyecto (Estudiante) */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
@@ -392,7 +362,7 @@ export default function Proyectos() {
             <input type="number" name="calificacionInnovacion" min="1" max="5" value={evalData.calificacionInnovacion} onChange={handleEvalInputChange} className="w-full border p-2 mb-4 rounded" />
             <label className="block text-sm text-gray-600 mb-1">Viabilidad (1-5)</label>
             <input type="number" name="calificacionViabilidad" min="1" max="5" value={evalData.calificacionViabilidad} onChange={handleEvalInputChange} className="w-full border p-2 mb-4 rounded" />
-            <textarea name="comentarios" value={evalData.comentarios} onChange={handleEvalInputChange} placeholder="Comentarios" className="w-full border p-2 mb-4 rounded" />
+            <textarea name="observacionesGenerales" value={evalData.observacionesGenerales} onChange={handleEvalInputChange} placeholder="Observaciones" className="w-full border p-2 mb-4 rounded" />
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setIsEvalModalOpen(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-400">Cancelar</button>
               <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">Aprobar Proyecto</button>

@@ -6,23 +6,19 @@ public class CrearProyectoDto
 
     public string Titulo { get; set; } = string.Empty;
 
+    public string NombreEquipo { get; set; } = string.Empty;
+
     public string Categoria { get; set; } = string.Empty;
 
-    public string Resumen { get; set; } = string.Empty;
+    public string? Resumen { get; set; }
 
-    public string ObjetivoGeneral { get; set; } = string.Empty;
+    public string? ObjetivoGeneral { get; set; }
 
-    public string ObjetivosEspecificos { get; set; } = string.Empty;
+    public string? ObjetivosEspecificos { get; set; }
 
-    public string Carrera { get; set; } = string.Empty;
+    public string? Carrera { get; set; }
 
-    public string LineaInvestigacion { get; set; } = string.Empty;
+    public string? LineaInvestigacion { get; set; }
 
-    public string? VideoUrl { get; set; }
-
-    public DateTime FechaInicio { get; set; }
-
-    public DateTime? FechaTermino { get; set; }
-
-    public List<int> IntegrantesIds { get; set; } = new();
+    public List<string>? IntegrantesEmails { get; set; }
 }

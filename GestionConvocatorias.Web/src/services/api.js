@@ -23,6 +23,75 @@ api.interceptors.response.use(
   }
 );
 
+// Convocatorias (Estudiante)
+export async function obtenerConvocatoriasActivas() {
+  const res = await api.get('/convocatorias/activas');
+  return res.data;
+}
+
+export async function obtenerMisRegistros() {
+  const res = await api.get('/convocatorias/mis-registros');
+  return res.data;
+}
+
+export async function registrarseConvocatoria(convocatoriaId) {
+  const res = await api.post(`/convocatorias/${convocatoriaId}/registrar`);
+  return res.data;
+}
+
+export async function cancelarRegistro(convocatoriaId) {
+  const res = await api.delete(`/convocatorias/${convocatoriaId}/cancelar-registro`);
+  return res.data;
+}
+
+export async function obtenerMiProyectoEnConvocatoria(convocatoriaId) {
+  const res = await api.get(`/convocatorias/${convocatoriaId}/mi-proyecto`);
+  return res.data;
+}
+
+// Proyectos (Estudiante)
+export async function crearProyecto(formData) {
+  const res = await api.post('/proyectos', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
+export async function obtenerProyecto(id) {
+  const res = await api.get(`/proyectos/${id}`);
+  return res.data;
+}
+
+export async function obtenerMisProyectos() {
+  const res = await api.get('/proyectos/MisProyectos');
+  return res.data;
+}
+
+// Integrantes
+export async function agregarIntegrante(proyectoId, email) {
+  const res = await api.post(`/proyectos/${proyectoId}/integrantes`, { email });
+  return res.data;
+}
+
+// Avances
+export async function crearAvance(formData) {
+  const res = await api.post('/avances', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
+export async function obtenerAvancesPorProyecto(proyectoId) {
+  const res = await api.get(`/avances/proyecto/${proyectoId}`);
+  return res.data;
+}
+
+// Archivos
+export function descargarArchivo(rutaRelativa) {
+  return `${api.defaults.baseURL}/proyectos/archivos/${encodeURIComponent(rutaRelativa)}`;
+}
+
+// Evaluador
 export async function sugerirEvaluador(proyectoId) {
   const res = await api.post(`/evaluaciones/sugerir/${proyectoId}`);
   return res.data.datos ?? res.data;
@@ -33,10 +102,12 @@ export async function actualizarEspecialidades(evaluadorId, especialidades) {
   return res.data;
 }
 
+// Reportes
 export async function obtenerHistorico(filtros = {}) {
   const params = {};
-  if (filtros.cuatrimestre) params.cuatrimestre = filtros.cuatrimestre;
-  if (filtros.categoria) params.categoria = filtros.categoria;
+  if (filtros.fechaInicio) params.fechaInicio = filtros.fechaInicio;
+  if (filtros.fechaFin) params.fechaFin = filtros.fechaFin;
+  if (filtros.categoria && filtros.categoria !== 'Todas') params.categoria = filtros.categoria;
   const res = await api.get('/reportes/historico', { params });
   return res.data;
 }
@@ -63,7 +134,7 @@ export async function exportarProyecto(proyectoId) {
   window.URL.revokeObjectURL(url);
 }
 
-// Gestión de usuarios (Administrador)
+// Usuarios (Admin)
 export async function obtenerUsuarios() {
   const res = await api.get('/usuarios');
   return res.data;
@@ -84,21 +155,9 @@ export async function cambiarEstadoUsuario(id, activo) {
   return res.data;
 }
 
-// Asignación de proyectos (Coordinador)
+// Asignación (Coordinador)
 export async function asignarProyecto(id, dto) {
   const res = await api.put(`/proyectos/${id}/asignacion`, dto);
-  return res.data;
-}
-
-// Avances (Estudiante)
-export async function crearAvance(dto) {
-  const res = await api.post('/avances', dto);
-  return res.data;
-}
-
-// Comentarios (DocenteAsesor)
-export async function crearComentario(dto) {
-  const res = await api.post('/comentarios', dto);
   return res.data;
 }
 

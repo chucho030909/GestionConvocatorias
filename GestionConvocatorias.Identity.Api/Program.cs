@@ -93,6 +93,7 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddHostedService<AlertaRetrasosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IArchivoService, ArchivoService>();
 
 var app = builder.Build();
 

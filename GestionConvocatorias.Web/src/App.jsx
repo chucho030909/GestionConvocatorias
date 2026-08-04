@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Convocatorias from './pages/Convocatorias';
+import ConvocatoriasEstudiante from './pages/ConvocatoriasEstudiante';
+import ConvocatoriaDetalle from './pages/ConvocatoriaDetalle';
 import Proyectos from './pages/Proyectos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
@@ -15,12 +17,8 @@ import { ROLES } from './context/AuthContext';
 
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/proyectos" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/proyectos" replace />;
   return children;
 }
 
@@ -32,7 +30,7 @@ function RedireccionInicio() {
     case ROLES.COORDINADOR:
       return <Navigate to="/dashboard" replace />;
     case ROLES.ESTUDIANTE:
-      return <Navigate to="/proyectos" replace />;
+      return <Navigate to="/convocatorias" replace />;
     case ROLES.DOCENTE_ASESOR:
       return <Navigate to="/proyectos/asignados" replace />;
     case ROLES.EVALUADOR:
@@ -40,6 +38,16 @@ function RedireccionInicio() {
     default:
       return <Navigate to="/proyectos" replace />;
   }
+}
+
+function ConvocatoriasRoute() {
+  const { user } = useAuth();
+  if (user?.role === ROLES.ESTUDIANTE) return <ConvocatoriasEstudiante />;
+  return (
+    <ProtectedRoute roles={[ROLES.ADMINISTRADOR, ROLES.COORDINADOR]}>
+      <Convocatorias />
+    </ProtectedRoute>
+  );
 }
 
 function App() {
@@ -65,7 +73,15 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="convocatorias" element={<Convocatorias />} />
+            <Route path="convocatorias" element={<ConvocatoriasRoute />} />
+            <Route
+              path="convocatorias/:id"
+              element={
+                <ProtectedRoute roles={[ROLES.ESTUDIANTE]}>
+                  <ConvocatoriaDetalle />
+                </ProtectedRoute>
+              }
+            />
             <Route path="proyectos" element={<Proyectos />} />
             <Route path="proyectos/nuevo" element={<Proyectos />} />
             <Route path="proyectos/asignados" element={<Proyectos />} />

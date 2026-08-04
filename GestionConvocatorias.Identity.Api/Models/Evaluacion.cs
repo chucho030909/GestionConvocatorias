@@ -33,8 +33,8 @@ public class Evaluacion
     [Column(TypeName = "decimal(5,2)")]
     public decimal PuntajeTotal { get; set; }
 
-    [StringLength(1000)]
-    public string Comentarios { get; set; } = string.Empty;
+    [StringLength(2000)]
+    public string ObservacionesGenerales { get; set; } = string.Empty;
 
     [StringLength(256)]
     public string? FirmaElectronica { get; set; }

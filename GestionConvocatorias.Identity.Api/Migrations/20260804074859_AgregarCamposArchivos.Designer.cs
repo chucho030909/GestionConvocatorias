@@ -4,6 +4,7 @@ using GestionConvocatorias.Identity.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionConvocatorias.Identity.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804074859_AgregarCamposArchivos")]
+    partial class AgregarCamposArchivos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -444,10 +447,6 @@ namespace GestionConvocatorias.Identity.Api.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("GitHubUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("Justificacion")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -486,10 +485,6 @@ namespace GestionConvocatorias.Identity.Api.Migrations
                     b.Property<string>("Resumen")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RutaCodigoFuente")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("RutaPropuestaPDF")
                         .HasMaxLength(500)
@@ -776,7 +771,7 @@ namespace GestionConvocatorias.Identity.Api.Migrations
             modelBuilder.Entity("GestionConvocatorias.Identity.Api.Models.Avance", b =>
                 {
                     b.HasOne("GestionConvocatorias.Identity.Api.Models.Proyecto", "Proyecto")
-                        .WithMany("Avances")
+                        .WithMany()
                         .HasForeignKey("ProyectoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -980,8 +975,6 @@ namespace GestionConvocatorias.Identity.Api.Migrations
 
             modelBuilder.Entity("GestionConvocatorias.Identity.Api.Models.Proyecto", b =>
                 {
-                    b.Navigation("Avances");
-
                     b.Navigation("Evaluaciones");
 
                     b.Navigation("Integrantes");

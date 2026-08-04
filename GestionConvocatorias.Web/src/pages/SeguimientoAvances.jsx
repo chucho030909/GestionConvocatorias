@@ -19,7 +19,6 @@ export default function SeguimientoAvances({ proyectoId }) {
   const fileInputRef = useRef(null);
 
   const [avances, setAvances] = useState([]);
-  const [comentarios, setComentarios] = useState([]);
   const [progreso, setProgreso] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
@@ -35,20 +34,15 @@ export default function SeguimientoAvances({ proyectoId }) {
       fetch(`/api/avances/proyecto/${proyectoId}`, { headers }).then((res) =>
         res.json()
       ),
-      fetch(`/api/comentarios/proyecto/${proyectoId}`, { headers }).then((res) =>
-        res.json()
-      ),
     ])
-      .then(([avancesData, comentariosData]) => {
+      .then(([avancesData]) => {
         setAvances(Array.isArray(avancesData) ? avancesData : []);
-        setComentarios(Array.isArray(comentariosData) ? comentariosData : []);
         if (avancesData.length > 0) {
           setProgreso(avancesData[avancesData.length - 1].porcentaje || 0);
         }
       })
       .catch(() => {
         setAvances([]);
-        setComentarios([]);
       })
       .finally(() => setCargando(false));
   }, [proyectoId]);
@@ -228,45 +222,6 @@ export default function SeguimientoAvances({ proyectoId }) {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Comentarios del Docente Asesor
-          </h2>
-
-          {comentarios.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
-              No hay comentarios aun.
-            </p>
-          ) : (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {[...comentarios].reverse().map((comentario, index) => (
-                <div
-                  key={comentario.id || index}
-                  className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-900">
-                      {comentario.usuario
-                        ? `${comentario.usuario.nombres} ${comentario.usuario.apellidos}`
-                        : 'Docente Asesor'}
-                    </span>
-                    <span className="text-xs text-blue-600">
-                      {new Date(comentario.fecha).toLocaleDateString('es-MX', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  <p className="text-sm text-blue-800">{comentario.texto}</p>
-                </div>
-              ))}
             </div>
           )}
         </div>

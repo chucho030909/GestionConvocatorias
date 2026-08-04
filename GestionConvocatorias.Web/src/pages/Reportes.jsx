@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { obtenerHistorico, exportarProyecto } from '../services/api';
+import { Search, Download, Calendar, Tag } from 'lucide-react';
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+const CATEGORIAS = [
+  'Todas',
+  'Innovación', 'Tecnología', 'Salud', 'Medio ambiente',
+  'Emprendimiento', 'Investigación', 'Desarrollo de software', 'Otra',
+];
 
 export default function Reportes() {
   const { user } = useAuth();
@@ -9,19 +16,28 @@ export default function Reportes() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const [cuatrimestre, setCuatrimestre] = useState('');
-  const [categoria, setCategoria] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [categoria, setCategoria] = useState('Todas');
   const [historico, setHistorico] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    manejarBuscar();
+  }, []);
+
   const manejarBuscar = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setCargando(true);
     setError('');
     try {
-      const datos = await obtenerHistorico({ cuatrimestre, categoria });
-      setHistorico(datos);
+      const params = {};
+      if (fechaInicio) params.fechaInicio = fechaInicio;
+      if (fechaFin) params.fechaFin = fechaFin;
+      if (categoria && categoria !== 'Todas') params.categoria = categoria;
+      const res = await api.get('/reportes/historico', { params });
+      setHistorico(res.data);
     } catch (err) {
       console.error(err);
       setError('No se pudo obtener el histórico.');
@@ -38,87 +54,148 @@ export default function Reportes() {
     }
   };
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Reportes</h1>
+  const limpiarFiltros = () => {
+    setFechaInicio('');
+    setFechaFin('');
+    setCategoria('Todas');
+    manejarBuscar();
+  };
 
-      <form
-        onSubmit={manejarBuscar}
-        className="flex flex-wrap items-end gap-4 bg-white p-4 rounded-lg shadow-md mb-6"
-      >
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600 mb-1">Cuatrimestre</label>
-          <input
-            type="text"
-            value={cuatrimestre}
-            onChange={(e) => setCuatrimestre(e.target.value)}
-            placeholder="Ej. 2026-C1"
-            className="border border-gray-300 rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-800"
-          />
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">Reportes</h1>
+        <p className="text-sm text-gray-500 mt-1">Consulta el histórico de proyectos por período y categoría.</p>
+      </div>
+
+      <form onSubmit={manejarBuscar} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+              <Calendar size={14} /> Fecha inicio
+            </label>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+              <Calendar size={14} /> Fecha fin
+            </label>
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              min={fechaInicio}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+              <Tag size={14} /> Categoría
+            </label>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {CATEGORIAS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={cargando}
+              className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            >
+              <Search size={16} />
+              {cargando ? 'Buscando...' : 'Buscar'}
+            </button>
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600 mb-1">Categoría</label>
-          <input
-            type="text"
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            placeholder="Ej. Tecnología"
-            className="border border-gray-300 rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-800"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={cargando}
-          className="bg-blue-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-900 disabled:opacity-50"
-        >
-          {cargando ? 'Cargando...' : 'Filtrar'}
-        </button>
       </form>
 
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+      )}
 
-      <table className="w-full bg-white shadow-md rounded-lg overflow-hidden">
-        <thead className="bg-gray-100 text-left text-gray-600">
-          <tr>
-            <th className="px-4 py-3">Proyecto</th>
-            <th className="px-4 py-3">Cuatrimestre</th>
-            <th className="px-4 py-3">Categoría</th>
-            <th className="px-4 py-3">Postulante</th>
-            <th className="px-4 py-3">Promedio Calificación</th>
-            <th className="px-4 py-3">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {historico.map((p) => (
-            <tr key={p.id} className="border-t border-gray-200">
-              <td className="px-4 py-3 font-medium">{p.titulo}</td>
-              <td className="px-4 py-3">{p.cuatrimestre ?? '—'}</td>
-              <td className="px-4 py-3">{p.categoria}</td>
-              <td className="px-4 py-3">{p.postulante ?? '—'}</td>
-              <td className="px-4 py-3">
-                <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
-                  {p.puntajeFinal ?? 0}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <button
-                  onClick={() => manejarExportar(p.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700"
-                >
-                  Exportar PDF
-                </button>
-              </td>
-            </tr>
-          ))}
-          {historico.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                No hay proyectos para mostrar. Usa los filtros para consultar el histórico.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {cargando ? (
+          <div className="flex items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-sm text-gray-500 border-b border-gray-100">
+                  <th className="px-6 py-3 font-medium">Proyecto</th>
+                  <th className="px-6 py-3 font-medium">Categoría</th>
+                  <th className="px-6 py-3 font-medium">Estado</th>
+                  <th className="px-6 py-3 font-medium">Convocatoria</th>
+                  <th className="px-6 py-3 font-medium">Integrantes</th>
+                  <th className="px-6 py-3 font-medium">Promedio</th>
+                  <th className="px-6 py-3 font-medium text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {historico.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                      No hay proyectos para mostrar. Ajusta los filtros y vuelve a buscar.
+                    </td>
+                  </tr>
+                ) : (
+                  historico.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-800">{p.titulo}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{p.cuatrimestre || '—'}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.categoria}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {p.estado}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.convocatoria || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {p.integrantes?.length ? p.integrantes.filter(Boolean).join(', ') : '—'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                          {p.puntajeFinal?.toFixed(2) ?? '0.00'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => manejarExportar(p.id)}
+                          className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          <Download size={14} />
+                          Exportar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

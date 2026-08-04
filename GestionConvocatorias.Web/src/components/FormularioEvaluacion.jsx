@@ -50,7 +50,7 @@ export default function FormularioEvaluacion({ proyectoId, onExito }) {
     calificacionModeloNegocio: 0,
   });
 
-  const [comentarios, setComentarios] = useState('');
+  const [observacionesGenerales, setObservacionesGenerales] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
 
@@ -100,7 +100,7 @@ export default function FormularioEvaluacion({ proyectoId, onExito }) {
         body: JSON.stringify({
           proyectoId,
           ...calificaciones,
-          comentarios,
+          observacionesGenerales,
         }),
       });
 
@@ -123,7 +123,7 @@ export default function FormularioEvaluacion({ proyectoId, onExito }) {
         calificacionSustentabilidad: 0,
         calificacionModeloNegocio: 0,
       });
-      setComentarios('');
+      setObservacionesGenerales('');
 
       if (onExito) onExito(data);
     } catch (err) {
@@ -191,8 +191,8 @@ export default function FormularioEvaluacion({ proyectoId, onExito }) {
           Observaciones
         </label>
         <textarea
-          value={comentarios}
-          onChange={(e) => setComentarios(e.target.value)}
+          value={observacionesGenerales}
+          onChange={(e) => setObservacionesGenerales(e.target.value)}
           rows={4}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Escriba sus observaciones generales sobre el proyecto..."

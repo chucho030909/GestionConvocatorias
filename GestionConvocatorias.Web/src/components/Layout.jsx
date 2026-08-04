@@ -33,7 +33,8 @@ const ICONOS_ENLACES = {
 
 const ENLACES_POR_ROL = {
   [ROLES.ESTUDIANTE]: [
-    { to: '/proyectos', label: 'Proyectos', icono: 'proyectos' },
+    { to: '/convocatorias', label: 'Convocatorias', icono: 'convocatorias' },
+    { to: '/proyectos', label: 'Mis Proyectos', icono: 'proyectos' },
   ],
   [ROLES.DOCENTE_ASESOR]: [
     { to: '/proyectos/asignados', label: 'Proyectos', icono: 'proyectos' },

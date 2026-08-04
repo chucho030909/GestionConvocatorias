@@ -14,5 +14,5 @@ public class CrearEvaluacionDto
 
     public int CalificacionModeloNegocio { get; set; }
 
-    public string Comentarios { get; set; } = string.Empty;
+    public string ObservacionesGenerales { get; set; } = string.Empty;
 }

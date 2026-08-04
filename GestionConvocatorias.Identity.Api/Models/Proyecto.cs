@@ -19,8 +19,28 @@ public class Proyecto
     public int? EvaluadorId { get; set; }
 
     [Required]
+    [StringLength(50)]
+    public string Folio { get; set; } = string.Empty;
+
+    [Required]
     [StringLength(200)]
     public string Titulo { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(150)]
+    public string NombreEquipo { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100)]
+    public string Modalidad { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100)]
+    public string AreaConocimiento { get; set; } = string.Empty;
+
+    public string Problema { get; set; } = string.Empty;
+
+    public string Justificacion { get; set; } = string.Empty;
 
     [Required]
     [StringLength(100)]
@@ -46,6 +66,15 @@ public class Proyecto
 
     public string? VideoUrl { get; set; }
 
+    [StringLength(500)]
+    public string? RutaPropuestaPDF { get; set; }
+
+    [StringLength(500)]
+    public string? RutaCodigoFuente { get; set; }
+
+    [StringLength(500)]
+    public string? GitHubUrl { get; set; }
+
     [Required]
     public EstadoProyecto Estado { get; set; } = EstadoProyecto.EnPropuesta;
 
@@ -59,6 +88,8 @@ public class Proyecto
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
     public ICollection<ProyectoEstudiante>? Integrantes { get; set; }
+
+    public ICollection<Avance>? Avances { get; set; }
 
     public ICollection<Evaluacion>? Evaluaciones { get; set; }
 

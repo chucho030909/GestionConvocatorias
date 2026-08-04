@@ -93,7 +93,7 @@ public class ReportesController : ControllerBase
     }
 
     [HttpGet("historico")]
-    public async Task<IActionResult> Historico([FromQuery] string? cuatrimestre, [FromQuery] string? categoria)
+    public async Task<IActionResult> Historico([FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] string? categoria)
     {
         IQueryable<Proyecto> query = _context.Proyectos
             .Include(p => p.Convocatoria)
@@ -103,8 +103,14 @@ public class ReportesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(categoria))
             query = query.Where(p => p.Categoria == categoria);
 
-        if (!string.IsNullOrWhiteSpace(cuatrimestre))
-            query = query.Where(p => p.Convocatoria != null && ObtenerCuatrimestre(p.Convocatoria.FechaApertura) == cuatrimestre);
+        if (fechaInicio.HasValue)
+            query = query.Where(p => p.Convocatoria != null && p.Convocatoria.FechaApertura >= fechaInicio.Value);
+
+        if (fechaFin.HasValue)
+        {
+            var fechaFinMax = fechaFin.Value.AddDays(1);
+            query = query.Where(p => p.Convocatoria != null && p.Convocatoria.FechaApertura < fechaFinMax);
+        }
 
         var proyectos = await query.ToListAsync();
 
@@ -134,7 +140,7 @@ public class ReportesController : ControllerBase
                     e.CalificacionSustentabilidad,
                     e.CalificacionModeloNegocio,
                     e.PuntajeTotal,
-                    e.Comentarios,
+                    e.ObservacionesGenerales,
                     e.FechaEvaluacion
                 }).ToList(),
                 PromedioPuntaje = evals.Any()
@@ -206,7 +212,7 @@ public class ReportesController : ControllerBase
                 e.CalificacionSustentabilidad,
                 e.CalificacionModeloNegocio,
                 e.PuntajeTotal,
-                e.Comentarios,
+                e.ObservacionesGenerales,
                 e.FechaEvaluacion
             }).ToList(),
             PuntajeFinal = evaluaciones.Any()

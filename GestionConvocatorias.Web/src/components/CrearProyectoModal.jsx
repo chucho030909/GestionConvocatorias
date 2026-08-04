@@ -13,8 +13,6 @@ export default function CrearProyectoModal({ convocatoriaId, convocatoriaMaxInte
   const [categoria, setCategoria] = useState('');
   const [propuestaPDF, setPropuestaPDF] = useState(null);
   const [codigoFuente, setCodigoFuente] = useState(null);
-  const [githubUrl, setGithubUrl] = useState('');
-  const [metodoCodigo, setMetodoCodigo] = useState('zip');
   const [emailsIntegrantes, setEmailsIntegrantes] = useState([]);
   const [emailInput, setEmailInput] = useState('');
   const [error, setError] = useState('');
@@ -67,8 +65,7 @@ export default function CrearProyectoModal({ convocatoriaId, convocatoriaMaxInte
     if (!nombreEquipo.trim()) { setError('El nombre del equipo es obligatorio.'); return; }
     if (!categoria) { setError('Seleccione una categoría.'); return; }
     if (!propuestaPDF) { setError('La propuesta PDF es obligatoria.'); return; }
-    if (metodoCodigo === 'zip' && !codigoFuente) { setError('El archivo ZIP del código fuente es obligatorio.'); return; }
-    if (metodoCodigo === 'github' && !githubUrl.trim()) { setError('El link de GitHub es obligatorio.'); return; }
+    if (!codigoFuente) { setError('El código fuente (ZIP) es obligatorio.'); return; }
 
     setSubiendo(true);
     try {
@@ -78,11 +75,7 @@ export default function CrearProyectoModal({ convocatoriaId, convocatoriaMaxInte
       formData.append('nombreEquipo', nombreEquipo.trim());
       formData.append('categoria', categoria);
       formData.append('propuestaPDF', propuestaPDF);
-      if (metodoCodigo === 'zip' && codigoFuente) {
-        formData.append('codigoFuente', codigoFuente);
-      } else if (metodoCodigo === 'github') {
-        formData.append('githubUrl', githubUrl.trim());
-      }
+      formData.append('codigoFuente', codigoFuente);
       if (emailsIntegrantes.length > 0) {
         formData.append('integrantesEmails', emailsIntegrantes.join(','));
       }
@@ -174,62 +167,27 @@ export default function CrearProyectoModal({ convocatoriaId, convocatoriaMaxInte
           {/* Código Fuente */}
           <div>
             <label className="text-sm font-medium text-gray-700">Código Fuente *</label>
-            <p className="text-xs text-gray-400 mb-2">Sube el código ZIP o proporciona el link de GitHub.</p>
+            <p className="text-xs text-gray-400 mb-2">Sube el código fuente del proyecto en formato ZIP.</p>
 
-            <div className="flex gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setMetodoCodigo('zip')}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  metodoCodigo === 'zip'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Package size={16} />
-                Subir ZIP
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetodoCodigo('github')}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  metodoCodigo === 'github'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <ExternalLink size={16} />
-                Link GitHub
-              </button>
+            <label className="flex items-center justify-center border border-dashed border-gray-300 rounded-lg px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors">
+              {codigoFuente ? (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Package size={16} className="text-green-500" />
+                  {codigoFuente.name} ({(codigoFuente.size / 1024 / 1024).toFixed(1)} MB)
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Upload size={16} />
+                  Seleccionar archivo ZIP (máx. 50 MB)
+                </div>
+              )}
+              <input type="file" accept=".zip" className="hidden" onChange={(e) => setCodigoFuente(e.target.files[0])} />
+            </label>
+
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-500">
+              <ExternalLink size={14} />
+              <span>GitHub Integration próximamente: el sistema creará el repositorio automáticamente.</span>
             </div>
-
-            {metodoCodigo === 'zip' ? (
-              <label className="flex items-center justify-center border border-dashed border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                {codigoFuente ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Package size={16} className="text-green-500" />
-                    {codigoFuente.name} ({(codigoFuente.size / 1024 / 1024).toFixed(1)} MB)
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Upload size={16} />
-                    Seleccionar archivo ZIP (máx. 50 MB)
-                  </div>
-                )}
-                <input type="file" accept=".zip" className="hidden" onChange={(e) => setCodigoFuente(e.target.files[0])} />
-              </label>
-            ) : (
-              <div className="flex items-center gap-2">
-                <ExternalLink size={16} className="text-gray-400" />
-                <input
-                  type="url"
-                  value={githubUrl}
-                  onChange={(e) => setGithubUrl(e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://github.com/usuario/proyecto"
-                />
-              </div>
-            )}
           </div>
 
           {/* Integrantes */}

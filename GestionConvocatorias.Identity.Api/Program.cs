@@ -27,7 +27,15 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var envConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(envConnectionString))
 {
-    connectionString = envConnectionString;
+    // Render provides DATABASE_URL in PostgreSQL URL format, convert to Npgsql connection string
+    var uri = new Uri(envConnectionString);
+    var userInfo = uri.UserInfo.Split(':');
+    var host = uri.Host;
+    var dbPort = uri.Port;
+    var database = uri.AbsolutePath.Trim('/');
+    var username = userInfo[0];
+    var password = userInfo[1];
+    connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;";
 }
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));

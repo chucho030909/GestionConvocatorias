@@ -32,6 +32,8 @@ if (!string.IsNullOrEmpty(envConnectionString))
     var userInfo = uri.UserInfo.Split(':');
     var host = uri.Host;
     var dbPort = uri.Port;
+    // Default to 5432 if port is -1 (not specified in URI)
+    if (dbPort <= 0) dbPort = 5432;
     var database = uri.AbsolutePath.Trim('/');
     var username = userInfo[0];
     var password = userInfo[1];

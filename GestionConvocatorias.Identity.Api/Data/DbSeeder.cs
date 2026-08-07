@@ -148,10 +148,26 @@ public static class DbSeeder
         await userManager.AddToRoleAsync(evaluador2, Roles.Evaluador);
         context.ChangeTracker.Clear();
 
+        var evaluador3 = new Usuario
+        {
+            Nombres = "Evaluador Tres",
+            Apellidos = "Externo",
+            Email = "22300243@uttt.edu.mx",
+            UserName = "22300243@uttt.edu.mx",
+            Rol = Roles.Evaluador,
+            Activo = true,
+            FechaRegistro = DateTime.UtcNow,
+            Especialidades = "Tecnología, Innovación"
+        };
+        await userManager.CreateAsync(evaluador3, "Password123!");
+        await userManager.AddToRoleAsync(evaluador3, Roles.Evaluador);
+        context.ChangeTracker.Clear();
+
         var convocatoriaActiva = new Convocatoria
         {
             Titulo = "Convocatoria de Innovación 2026",
             Descripcion = "Convocatoria activa para proyectos de innovación tecnológica.",
+            Clave = "CONV-2026-001",
             FechaApertura = DateTime.UtcNow.AddDays(-10),
             FechaCierre = DateTime.UtcNow.AddDays(20),
             Estado = "Activa"
@@ -161,6 +177,7 @@ public static class DbSeeder
         {
             Titulo = "Convocatoria de Desarrollo Sostenible 2025",
             Descripcion = "Convocatoria finalizada para proyectos de sostenibilidad.",
+            Clave = "CONV-2025-001",
             FechaApertura = DateTime.UtcNow.AddDays(-200),
             FechaCierre = DateTime.UtcNow.AddDays(-100),
             Estado = "Finalizada"
@@ -175,6 +192,7 @@ public static class DbSeeder
             ConvocatoriaId = convocatoriaActiva.Id,
             DocenteAsesorId = docente1.Id,
             EvaluadorId = evaluador1.Id,
+            Folio = "CONV-2026-001",
             Titulo = "App de movilidad urbana",
             Categoria = "Tecnología",
             Resumen = "Sistema de detección de fraudes bancarios utilizando algoritmos de Inteligencia Artificial (IA) y redes neuronales.",
@@ -192,6 +210,7 @@ public static class DbSeeder
             ConvocatoriaId = convocatoriaActiva.Id,
             DocenteAsesorId = docente2.Id,
             EvaluadorId = evaluador2.Id,
+            Folio = "CONV-2026-002",
             Titulo = "Plataforma de energía solar comunitaria",
             Categoria = "Sostenibilidad",
             Resumen = "Sistema de gestión de paneles solares para comunidades.",
@@ -207,6 +226,7 @@ public static class DbSeeder
         var proyecto3 = new Proyecto
         {
             ConvocatoriaId = convocatoriaFinalizada.Id,
+            Folio = "CONV-2025-001",
             Titulo = "Huerta urbana inteligente",
             Categoria = "Sostenibilidad",
             Resumen = "Proyecto de agricultura urbana automatizada.",

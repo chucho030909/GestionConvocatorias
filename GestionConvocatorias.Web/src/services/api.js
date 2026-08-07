@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5241/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5241/api',
 });
 
 api.interceptors.request.use((config) => {
@@ -86,6 +86,14 @@ export async function obtenerAvancesPorProyecto(proyectoId) {
   return res.data;
 }
 
+// Documentos
+export async function subirDocumento(formData) {
+  const res = await api.post('/documentos/subir', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
 // Archivos
 export function descargarArchivo(rutaRelativa) {
   return `${api.defaults.baseURL}/proyectos/archivos/${encodeURIComponent(rutaRelativa)}`;
@@ -155,10 +163,52 @@ export async function cambiarEstadoUsuario(id, activo) {
   return res.data;
 }
 
+export async function actualizarRolesUsuario(id, roles) {
+  const res = await api.put(`/usuarios/${id}/roles`, { roles });
+  return res.data;
+}
+
+// Auth (público)
+export async function recuperarContrasena(correoElectronico) {
+  const res = await api.post('/auth/recuperar-contrasena', { correoElectronico });
+  return res.data;
+}
+
+export async function restablecerContrasena(token, nuevaContrasena) {
+  const res = await api.post('/auth/restablecer-contrasena', { token, nuevaContrasena });
+  return res.data;
+}
+
+export async function registrarEstudiante(formData) {
+  const res = await api.post('/auth/registrar-estudiante', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
 // Asignación (Coordinador)
 export async function asignarProyecto(id, dto) {
   const res = await api.put(`/proyectos/${id}/asignacion`, dto);
   return res.data;
 }
 
+// Invitar evaluador (desde sugeridos IA)
+export async function invitarEvaluador(proyectoId, evaluadorId) {
+  const res = await api.post(`/proyectos/${proyectoId}/invitar-evaluador`, { evaluadorId });
+  return res.data;
+}
+
+// Rechazar evaluación (Evaluador)
+export async function rechazarEvaluador(proyectoId) {
+  const res = await api.put(`/proyectos/${proyectoId}/rechazar-evaluador`);
+  return res.data;
+}
+
+// GitHub
+export async function crearRepositorio(proyectoId) {
+  const res = await api.post(`/proyectos/${proyectoId}/crear-repositorio`);
+  return res.data;
+}
+
+export { api };
 export default api;

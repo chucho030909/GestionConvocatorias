@@ -25,5 +25,6 @@ public class UsuarioRespuestaDto
     public string Apellidos { get; set; } = string.Empty;
     public string CorreoElectronico { get; set; } = string.Empty;
     public string Rol { get; set; } = string.Empty;
+    public List<string> Roles { get; set; } = new();
     public bool Activo { get; set; }
 }

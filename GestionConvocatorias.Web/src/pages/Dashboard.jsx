@@ -108,7 +108,7 @@ export default function Dashboard() {
         setDashboard(dashData);
         setRanking(rankData);
       })
-      .catch((err) => console.error(err))
+      .catch(() => alert('Error al cargar el dashboard.'))
       .finally(() => setCargando(false));
   }, []);
 

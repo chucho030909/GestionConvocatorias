@@ -94,7 +94,7 @@ export default function PublicacionResultados() {
           setConvocatoriaSeleccionada(res.data[0].id);
         }
       })
-      .catch((err) => console.error(err));
+      .catch(() => alert('Error al cargar las convocatorias.'));
   }, []);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function PublicacionResultados() {
     setCargando(true);
     getRanking(convocatoriaSeleccionada)
       .then((data) => setRanking(data))
-      .catch((err) => console.error(err))
+      .catch(() => alert('Error al cargar el ranking.'))
       .finally(() => setCargando(false));
   }, [convocatoriaSeleccionada]);
 

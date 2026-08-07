@@ -67,7 +67,6 @@ export default function Retroalimentacion() {
         setProyecto(projRes.data);
       })
       .catch((err) => {
-        console.error(err);
         setError('Error al cargar la retroalimentación.');
       })
       .finally(() => setCargando(false));
@@ -100,6 +99,25 @@ export default function Retroalimentacion() {
       </div>
     );
   }
+
+  const handleDescargarPDF = async () => {
+    if (!proyectoId) return;
+    try {
+      const res = await api.get(`/evaluaciones/proyecto/${proyectoId}/retroalimentacion`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `retroalimentacion-${proyecto?.folio || 'proyecto'}.html`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('No se pudo descargar la retroalimentación.');
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -165,7 +183,10 @@ export default function Retroalimentacion() {
           )}
 
           <div className="flex justify-end mt-6 pt-4 border-t border-gray-100">
-            <button className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={handleDescargarPDF}
+              className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Download size={16} />
               Descargar retroalimentación (PDF)
             </button>

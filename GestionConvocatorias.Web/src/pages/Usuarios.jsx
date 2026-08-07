@@ -31,7 +31,6 @@ export default function Usuarios() {
       const data = await obtenerUsuarios();
       setUsuarios(data);
     } catch (err) {
-      console.error(err);
       setError('No se pudo cargar la lista de usuarios.');
     } finally {
       setCargando(false);
@@ -96,7 +95,6 @@ export default function Usuarios() {
       setModal(null);
       await cargar();
     } catch (err) {
-      console.error(err);
       setError('No se pudo guardar el usuario.');
     }
   };
@@ -106,7 +104,7 @@ export default function Usuarios() {
       await cambiarEstadoUsuario(u.id, !u.activo);
       await cargar();
     } catch (err) {
-      console.error(err);
+      alert('Error al cambiar el estado del usuario.');
     }
   };
 

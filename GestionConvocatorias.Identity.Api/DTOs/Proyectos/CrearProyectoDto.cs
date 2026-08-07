@@ -10,15 +10,23 @@ public class CrearProyectoDto
 
     public string Categoria { get; set; } = string.Empty;
 
-    public string? Resumen { get; set; }
+    public string? AreaConocimiento { get; set; }
+
+    public string? LineaInvestigacion { get; set; }
+
+    public string? Modalidad { get; set; }
+
+    public string? Problema { get; set; }
+
+    public string? Justificacion { get; set; }
 
     public string? ObjetivoGeneral { get; set; }
 
     public string? ObjetivosEspecificos { get; set; }
 
-    public string? Carrera { get; set; }
+    public string? Resumen { get; set; }
 
-    public string? LineaInvestigacion { get; set; }
+    public string? Carrera { get; set; }
 
     public List<string>? IntegrantesEmails { get; set; }
 }

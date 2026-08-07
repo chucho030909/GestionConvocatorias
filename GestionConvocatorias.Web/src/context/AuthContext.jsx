@@ -30,13 +30,15 @@ function obtenerUsuarioDesdeToken(token) {
       payload.role ||
       payload.Role;
 
-    const role = rolReclamado instanceof Array ? rolReclamado[0] : rolReclamado;
+    const roles = rolReclamado instanceof Array ? rolReclamado : [rolReclamado];
+    const role = roles[0] || '';
 
     return {
       id: payload[NAME_IDENTIFIER],
       email: payload[EMAIL],
       name: payload[NAME],
       role,
+      roles,
     };
   } catch {
     return null;

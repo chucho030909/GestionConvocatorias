@@ -35,7 +35,7 @@ export default function ConvocatoriasEstudiante() {
         setConvocatorias(activasRes.data);
         setMisRegistros(registrosRes.data);
       })
-      .catch((err) => console.error(err))
+      .catch(() => alert('Error al cargar las convocatorias.'))
       .finally(() => setCargando(false));
   }, []);
 
@@ -49,7 +49,6 @@ export default function ConvocatoriasEstudiante() {
       const res = await api.get('/convocatorias/mis-registros');
       setMisRegistros(res.data);
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.mensaje || 'Error al registrarse.');
     } finally {
       setProcesando(null);
@@ -64,7 +63,6 @@ export default function ConvocatoriasEstudiante() {
       const res = await api.get('/convocatorias/mis-registros');
       setMisRegistros(res.data);
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.mensaje || 'Error al cancelar.');
     } finally {
       setProcesando(null);

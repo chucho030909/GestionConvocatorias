@@ -23,6 +23,7 @@ public class AppDbContext : IdentityDbContext<Usuario, IdentityRole<int>, int>
     public DbSet<Mensaje> Mensajes { get; set; }
     public DbSet<InvitacionEvaluador> InvitacionesEvaluador { get; set; }
     public DbSet<ConvocatoriaEstudiante> ConvocatoriaEstudiantes { get; set; }
+    public DbSet<Asesoria> Asesorias { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,5 +124,10 @@ public class AppDbContext : IdentityDbContext<Usuario, IdentityRole<int>, int>
             .WithMany()
             .HasForeignKey(ce => ce.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Asesoria>()
+            .HasOne(a => a.DocenteAsesor)
+            .WithMany()
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

@@ -11,6 +11,19 @@ public class ArchivoService : IArchivoService
             Directory.CreateDirectory(_raizArchivos);
     }
 
+    private string ValidarRuta(string rutaRelativa)
+    {
+        // Prevenir path traversal: normalizar y verificar que la ruta está dentro de ArchivosGuardados
+        var rutaLimpia = rutaRelativa.Replace('/', '\\').TrimStart('\\');
+        var rutaCompleta = Path.GetFullPath(Path.Combine(_raizArchivos, rutaLimpia));
+        var rutaRaiz = Path.GetFullPath(_raizArchivos);
+
+        if (!rutaCompleta.StartsWith(rutaRaiz, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Acceso denegado: ruta no válida.");
+
+        return rutaCompleta;
+    }
+
     public async Task<string> GuardarArchivoAsync(IFormFile archivo, string carpeta)
     {
         var rutaCarpeta = Path.Combine(_raizArchivos, carpeta);
@@ -28,7 +41,8 @@ public class ArchivoService : IArchivoService
 
     public async Task<byte[]> ObtenerArchivoAsync(string rutaRelativa)
     {
-        var rutaCompleta = Path.Combine(_raizArchivos, rutaRelativa);
+        var rutaCompleta = ValidarRuta(rutaRelativa);
+
         if (!System.IO.File.Exists(rutaCompleta))
             throw new FileNotFoundException("El archivo no existe.");
 
@@ -37,7 +51,8 @@ public class ArchivoService : IArchivoService
 
     public void EliminarArchivo(string rutaRelativa)
     {
-        var rutaCompleta = Path.Combine(_raizArchivos, rutaRelativa);
+        var rutaCompleta = ValidarRuta(rutaRelativa);
+
         if (System.IO.File.Exists(rutaCompleta))
             System.IO.File.Delete(rutaCompleta);
     }

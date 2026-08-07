@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { obtenerAvancesPorProyecto, crearAvance, subirDocumento } from '../services/api';
 
 const COLORES_ESTADO = {
   aprobado: 'bg-green-500',
@@ -27,15 +28,8 @@ export default function SeguimientoAvances({ proyectoId }) {
   useEffect(() => {
     if (!proyectoId) return;
 
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
-
-    Promise.all([
-      fetch(`/api/avances/proyecto/${proyectoId}`, { headers }).then((res) =>
-        res.json()
-      ),
-    ])
-      .then(([avancesData]) => {
+    obtenerAvancesPorProyecto(proyectoId)
+      .then((avancesData) => {
         setAvances(Array.isArray(avancesData) ? avancesData : []);
         if (avancesData.length > 0) {
           setProgreso(avancesData[avancesData.length - 1].porcentaje || 0);
@@ -55,30 +49,15 @@ export default function SeguimientoAvances({ proyectoId }) {
     setMensaje(null);
 
     try {
-      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('proyectoId', proyectoId);
       formData.append('archivo', archivo);
 
-      const res = await fetch('/api/documentos/subir', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.mensaje || 'Error al subir el documento');
-      }
+      await subirDocumento(formData);
 
       setMensaje({ tipo: 'exito', texto: 'Documento subido exitosamente.' });
 
-      const headers = { Authorization: `Bearer ${token}` };
-      const avancesRes = await fetch(
-        `/api/avances/proyecto/${proyectoId}`,
-        { headers }
-      );
-      const avancesData = await avancesRes.json();
+      const avancesData = await obtenerAvancesPorProyecto(proyectoId);
       setAvances(Array.isArray(avancesData) ? avancesData : []);
     } catch (err) {
       setMensaje({ tipo: 'error', texto: err.message });
@@ -95,34 +74,16 @@ export default function SeguimientoAvances({ proyectoId }) {
     setMensaje(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/avances', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          proyectoId: parseInt(proyectoId),
-          descripcion,
-          porcentaje: parseInt(porcentaje),
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.mensaje || 'Error al registrar el avance');
-      }
+      const formData = new FormData();
+      formData.append('proyectoId', parseInt(proyectoId));
+      formData.append('descripcion', descripcion);
+      formData.append('porcentaje', parseInt(porcentaje));
+      await crearAvance(formData);
 
       setMensaje({ tipo: 'exito', texto: 'Avance registrado exitosamente.' });
       setProgreso(parseInt(porcentaje));
 
-      const headers = { Authorization: `Bearer ${token}` };
-      const avancesRes = await fetch(
-        `/api/avances/proyecto/${proyectoId}`,
-        { headers }
-      );
-      const avancesData = await avancesRes.json();
+      const avancesData = await obtenerAvancesPorProyecto(proyectoId);
       setAvances(Array.isArray(avancesData) ? avancesData : []);
     } catch (err) {
       setMensaje({ tipo: 'error', texto: err.message });

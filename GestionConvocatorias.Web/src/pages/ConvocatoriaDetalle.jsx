@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, CheckCircle, Clock, FileText, Upload,
-  Users, Award, FolderOpen, Plus, ExternalLink, Package, Download
+  Users, Award, FolderOpen, Plus, ExternalLink, Package, Download, GitBranch
 } from 'lucide-react';
-import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo } from '../services/api';
+import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, crearRepositorio } from '../services/api';
 import CrearProyectoModal from '../components/CrearProyectoModal';
 import ListaAvances from '../components/ListaAvances';
 
@@ -64,6 +64,7 @@ export default function ConvocatoriaDetalle() {
   const [descripcionAvance, setDescripcionAvance] = useState('');
   const [documentoAvance, setDocumentoAvance] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [creandoRepo, setCreandoRepo] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -83,7 +84,7 @@ export default function ConvocatoriaDetalle() {
         setAvances(avancesRes);
       }
     } catch (err) {
-      console.error(err);
+      alert('Error al cargar los datos.');
     } finally {
       setCargando(false);
     }
@@ -116,6 +117,18 @@ export default function ConvocatoriaDetalle() {
       alert(err.response?.data?.mensaje || 'Error al subir avance.');
     } finally {
       setSubiendo(false);
+    }
+  };
+
+  const handleCrearRepositorio = async () => {
+    setCreandoRepo(true);
+    try {
+      const resultado = await crearRepositorio(miProyecto.id);
+      setMiProyecto({ ...miProyecto, gitHubUrl: resultado.githubUrl });
+    } catch (err) {
+      alert(err.response?.data?.mensaje || 'Error al crear el repositorio.');
+    } finally {
+      setCreandoRepo(false);
     }
   };
 
@@ -273,6 +286,28 @@ export default function ConvocatoriaDetalle() {
               <p className="text-xs text-gray-400 mt-2">Los integrantes se definen al crear el proyecto.</p>
             </div>
 
+            {/* Docente Asesor y Evaluador */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-400 uppercase tracking-wide">Docente Asesor</label>
+                <p className="text-sm font-medium text-gray-800 mt-1">
+                  {miProyecto.docenteAsesor
+                    ? `${miProyecto.docenteAsesor.nombres} ${miProyecto.docenteAsesor.apellidos}`
+                    : <span className="text-gray-400 italic">Sin asignar</span>
+                  }
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 uppercase tracking-wide">Evaluador</label>
+                <p className="text-sm font-medium text-gray-800 mt-1">
+                  {miProyecto.evaluador
+                    ? `${miProyecto.evaluador.nombres} ${miProyecto.evaluador.apellidos}`
+                    : <span className="text-gray-400 italic">Sin asignar</span>
+                  }
+                </p>
+              </div>
+            </div>
+
             {/* Propuesta PDF */}
             {miProyecto.rutaPropuestaPDF && (
               <div>
@@ -316,6 +351,16 @@ export default function ConvocatoriaDetalle() {
                     <ExternalLink size={16} />
                     Ver en GitHub
                   </a>
+                )}
+                {!miProyecto.gitHubUrl && (
+                  <button
+                    onClick={handleCrearRepositorio}
+                    disabled={creandoRepo}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                  >
+                    <GitBranch size={16} />
+                    {creandoRepo ? 'Creando repositorio...' : 'Crear Repositorio en GitHub'}
+                  </button>
                 )}
               </div>
             </div>

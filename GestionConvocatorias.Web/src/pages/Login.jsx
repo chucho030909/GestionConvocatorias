@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,7 +23,23 @@ export default function Login() {
       });
       const { token } = response.data.datos;
       login(token);
-      navigate('/dashboard');
+
+      // Redirigir según el rol del usuario
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const roles = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role || [];
+      const primerRol = Array.isArray(roles) ? roles[0] : roles;
+
+      if (primerRol === 'Administrador' || primerRol === 'Coordinador') {
+        navigate('/dashboard');
+      } else if (primerRol === 'Estudiante') {
+        navigate('/convocatorias');
+      } else if (primerRol === 'Evaluador') {
+        navigate('/evaluaciones');
+      } else if (primerRol === 'DocenteAsesor') {
+        navigate('/proyectos');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError('Credenciales inválidas. Intenta de nuevo.');
     } finally {
@@ -106,12 +122,12 @@ export default function Login() {
                 <span className="text-sm text-gray-600">Recordarme</span>
               </label>
 
-              <a
-                href="#"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ¿Olvidaste tu contraseña?
-              </a>
+               <a
+                 href="/recuperar-contrasena"
+                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+               >
+                 ¿Olvidaste tu contraseña?
+               </a>
             </div>
 
             <button
@@ -125,12 +141,12 @@ export default function Login() {
 
           <p className="text-center mt-6 text-sm text-gray-600">
             ¿No tienes cuenta?{' '}
-            <a
-              href="#"
+            <Link
+              to="/register"
               className="font-medium text-gray-900 hover:underline"
             >
               Registrarse
-            </a>
+            </Link>
           </p>
         </div>
       </div>

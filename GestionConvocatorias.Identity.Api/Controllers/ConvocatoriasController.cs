@@ -24,7 +24,19 @@ public class ConvocatoriasController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetConvocatorias()
     {
-        var convocatorias = await _context.Convocatorias.ToListAsync();
+        var esEstudiante = User.IsInRole("Estudiante");
+
+        var query = _context.Convocatorias.AsQueryable();
+
+        // Los estudiantes solo ven convocatorias activas y dentro de fecha
+        if (esEstudiante)
+        {
+            query = query.Where(c => c.Estado == "Activa" &&
+                (c.FechaLimiteRegistro == default || c.FechaLimiteRegistro >= DateTime.UtcNow) &&
+                c.FechaCierre >= DateTime.UtcNow);
+        }
+
+        var convocatorias = await query.OrderByDescending(c => c.FechaApertura).ToListAsync();
         return Ok(convocatorias);
     }
 
@@ -188,11 +200,22 @@ public class ConvocatoriasController : ControllerBase
     }
 
     [HttpPost]
+    [Consumes("multipart/form-data")]
     [Authorize(Roles = "Administrador,Coordinador")]
-    public async Task<IActionResult> Crear([FromBody] Convocatoria convocatoria)
+    public async Task<IActionResult> Crear([FromForm] Convocatoria convocatoria,
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+
+        var erroresFechas = ValidarFechas(convocatoria, esCreacion: true);
+        if (erroresFechas.Count > 0)
+            return BadRequest(new { mensaje = "Error en las fechas.", errores = erroresFechas });
+
+        var rutas = await GuardarArchivosConvocatoria(basesPDF, convocatoriaPDF, formatos);
+        convocatoria.RutaBases = rutas.rutaBases;
+        convocatoria.RutaConvocatoriaPDF = rutas.rutaConvocatoria;
+        convocatoria.RutaFormatos = rutas.rutaFormatos;
 
         _context.Convocatorias.Add(convocatoria);
         await _context.SaveChangesAsync();
@@ -201,12 +224,18 @@ public class ConvocatoriasController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Consumes("multipart/form-data")]
     [Authorize(Roles = "Administrador,Coordinador")]
-    public async Task<IActionResult> Actualizar(int id, [FromBody] Convocatoria convocatoria)
+    public async Task<IActionResult> Actualizar(int id, [FromForm] Convocatoria convocatoria,
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
     {
         var existente = await _context.Convocatorias.FindAsync(id);
         if (existente is null)
             return NotFound(new { mensaje = "Convocatoria no encontrada." });
+
+        var erroresFechas = ValidarFechas(convocatoria, esCreacion: false);
+        if (erroresFechas.Count > 0)
+            return BadRequest(new { mensaje = "Error en las fechas.", errores = erroresFechas });
 
         existente.Clave = convocatoria.Clave;
         existente.Titulo = convocatoria.Titulo;
@@ -226,6 +255,12 @@ public class ConvocatoriasController : ControllerBase
         existente.NumeroEvaluadoresPorProyecto = convocatoria.NumeroEvaluadoresPorProyecto;
         existente.EscalaEvaluacion = convocatoria.EscalaEvaluacion;
         existente.RubricaAsignada = convocatoria.RubricaAsignada;
+        existente.LinkRubrica = convocatoria.LinkRubrica;
+
+        var rutas = await GuardarArchivosConvocatoria(basesPDF, convocatoriaPDF, formatos);
+        if (rutas.rutaBases != null) existente.RutaBases = rutas.rutaBases;
+        if (rutas.rutaConvocatoria != null) existente.RutaConvocatoriaPDF = rutas.rutaConvocatoria;
+        if (rutas.rutaFormatos != null) existente.RutaFormatos = rutas.rutaFormatos;
 
         await _context.SaveChangesAsync();
         return Ok(existente);
@@ -239,8 +274,137 @@ public class ConvocatoriasController : ControllerBase
         if (convocatoria is null)
             return NotFound(new { mensaje = "Convocatoria no encontrada." });
 
+        // Verificar si hay proyectos asociados
+        var tieneProyectos = await _context.Proyectos.AnyAsync(p => p.ConvocatoriaId == id);
+        if (tieneProyectos)
+            return BadRequest(new { mensaje = "No se puede eliminar la convocatoria porque tiene proyectos asociados. Primero elimine los proyectos." });
+
         _context.Convocatorias.Remove(convocatoria);
         await _context.SaveChangesAsync();
         return Ok(new { mensaje = "Convocatoria eliminada." });
+    }
+
+    private static List<string> ValidarFechas(Convocatoria c, bool esCreacion)
+    {
+        var errores = new List<string>();
+        var ahora = DateTime.UtcNow;
+
+        if (c.FechaApertura == default)
+            errores.Add("La fecha de apertura es obligatoria.");
+
+        if (c.FechaCierre == default)
+            errores.Add("La fecha de cierre es obligatoria.");
+
+        if (esCreacion)
+        {
+            if (c.FechaLimiteRegistro != default && c.FechaLimiteRegistro < ahora)
+                errores.Add("La fecha límite de registro no puede estar en el pasado.");
+
+            if (c.FechaCierre != default && c.FechaCierre < ahora)
+                errores.Add("La fecha de cierre no puede estar en el pasado.");
+        }
+
+        if (c.FechaApertura != default && c.FechaCierre != default && c.FechaApertura >= c.FechaCierre)
+            errores.Add("La fecha de apertura debe ser anterior a la fecha de cierre.");
+
+        if (c.FechaLimiteRegistro != default && c.FechaCierre != default && c.FechaLimiteRegistro >= c.FechaCierre)
+            errores.Add("La fecha límite de registro debe ser anterior a la fecha de cierre.");
+
+        if (c.FechaLimiteRegistro != default && c.FechaApertura != default && c.FechaLimiteRegistro < c.FechaApertura)
+            errores.Add("La fecha límite de registro no puede ser anterior a la fecha de apertura.");
+
+        if (c.FechaEvaluacion != default && c.FechaCierre != default && c.FechaEvaluacion <= c.FechaCierre)
+            errores.Add("La fecha de evaluación debe ser posterior a la fecha de cierre.");
+
+        return errores;
+    }
+
+    private async Task<(string? rutaBases, string? rutaConvocatoria, string? rutaFormatos)> GuardarArchivosConvocatoria(
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
+    {
+        string? rutaBases = null, rutaConvocatoria = null, rutaFormatos = null;
+        var carpeta = Path.Combine("ArchivosConvocatorias");
+        Directory.CreateDirectory(carpeta);
+
+        // Validar y guardar bases PDF
+        if (basesPDF is { Length: > 0 })
+        {
+            if (!basesPDF.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("El archivo de bases debe ser un PDF.");
+            if (basesPDF.Length > 10 * 1024 * 1024)
+                throw new InvalidOperationException("El archivo de bases no debe exceder 10 MB.");
+
+            var nombre = $"bases_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+            var ruta = Path.Combine(carpeta, nombre);
+            using var stream = new FileStream(ruta, FileMode.Create);
+            await basesPDF.CopyToAsync(stream);
+            rutaBases = ruta;
+        }
+
+        // Validar y guardar convocatoria PDF
+        if (convocatoriaPDF is { Length: > 0 })
+        {
+            if (!convocatoriaPDF.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("El archivo de convocatoria debe ser un PDF.");
+            if (convocatoriaPDF.Length > 10 * 1024 * 1024)
+                throw new InvalidOperationException("El archivo de convocatoria no debe exceder 10 MB.");
+
+            var nombre = $"convocatoria_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+            var ruta = Path.Combine(carpeta, nombre);
+            using var stream = new FileStream(ruta, FileMode.Create);
+            await convocatoriaPDF.CopyToAsync(stream);
+            rutaConvocatoria = ruta;
+        }
+
+        // Validar y guardar formatos
+        if (formatos is { Length: > 0 })
+        {
+            var extension = Path.GetExtension(formatos.FileName).ToLowerInvariant();
+            var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx" };
+            if (!extensionesPermitidas.Contains(extension))
+                throw new InvalidOperationException("Los formatos deben ser PDF, Word o Excel.");
+            if (formatos.Length > 10 * 1024 * 1024)
+                throw new InvalidOperationException("El archivo de formatos no debe exceder 10 MB.");
+
+            var nombre = $"formatos_{DateTime.UtcNow:yyyyMMddHHmmss}{extension}";
+            var ruta = Path.Combine(carpeta, nombre);
+            using var stream = new FileStream(ruta, FileMode.Create);
+            await formatos.CopyToAsync(stream);
+            rutaFormatos = ruta;
+        }
+
+        return (rutaBases, rutaConvocatoria, rutaFormatos);
+    }
+
+    [HttpGet("{id}/archivos/{tipo}")]
+    [Authorize]
+    public async Task<IActionResult> DescargarArchivoConvocatoria(int id, string tipo)
+    {
+        var convocatoria = await _context.Convocatorias.FindAsync(id);
+        if (convocatoria is null)
+            return NotFound(new { mensaje = "Convocatoria no encontrada." });
+
+        string? ruta = tipo.ToLowerInvariant() switch
+        {
+            "bases" => convocatoria.RutaBases,
+            "convocatoria" => convocatoria.RutaConvocatoriaPDF,
+            "formatos" => convocatoria.RutaFormatos,
+            _ => null
+        };
+
+        if (string.IsNullOrEmpty(ruta) || !System.IO.File.Exists(ruta))
+            return NotFound(new { mensaje = "Archivo no encontrado." });
+
+        var extension = Path.GetExtension(ruta).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".pdf" => "application/pdf",
+            ".doc" or ".docx" => "application/msword",
+            ".xls" or ".xlsx" => "application/vnd.ms-excel",
+            _ => "application/octet-stream"
+        };
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(ruta);
+        return File(bytes, contentType, Path.GetFileName(ruta));
     }
 }

@@ -77,17 +77,17 @@ function validarSeccionFechas(f) {
   const pub = f.fechaPublicacion;
   const apertura = f.fechaApertura;
   const limReg = f.fechaLimiteRegistro;
-  const evaluacion = f.fechaEvaluacion;
   const cierre = f.fechaCierre;
+  const evaluacion = f.fechaEvaluacion;
   const pubRes = f.fechaPublicacionResultados;
 
   if (!apertura) e.fechaApertura = 'La fecha de apertura es obligatoria.';
 
   if (pub && apertura && pub > apertura) e.fechaApertura = 'Debe ser igual o posterior a la fecha de publicación.';
   if (apertura && limReg && apertura > limReg) e.fechaLimiteRegistro = 'Debe ser igual o posterior a la apertura.';
-  if (limReg && evaluacion && limReg > evaluacion) e.fechaEvaluacion = 'Debe ser igual o posterior al límite de registro.';
-  if (evaluacion && cierre && evaluacion > cierre) e.fechaCierre = 'Debe ser igual o posterior a la evaluación.';
-  if (cierre && pubRes && cierre > pubRes) e.fechaPublicacionResultados = 'Debe ser igual o posterior al cierre.';
+  if (limReg && cierre && limReg > cierre) e.fechaCierre = 'Debe ser igual o posterior al límite de registro.';
+  if (cierre && evaluacion && cierre >= evaluacion) e.fechaEvaluacion = 'Debe ser posterior a la fecha de cierre.';
+  if (evaluacion && pubRes && evaluacion > pubRes) e.fechaPublicacionResultados = 'Debe ser igual o posterior a la evaluación.';
 
   return e;
 }
@@ -100,7 +100,6 @@ function validarSeccionConfig(f) {
   else if (f.numeroMaximoIntegrantes > 10) e.numeroMaximoIntegrantes = 'Máximo 10 integrantes.';
   if (!f.numeroEvaluadoresPorProyecto || f.numeroEvaluadoresPorProyecto < 1) e.numeroEvaluadoresPorProyecto = 'Mínimo 1 evaluador.';
   else if (f.numeroEvaluadoresPorProyecto > 5) e.numeroEvaluadoresPorProyecto = 'Máximo 5 evaluadores.';
-  if (!f.rubricaAsignada) e.rubricaAsignada = 'Seleccione una rúbrica.';
   return e;
 }
 
@@ -116,17 +115,18 @@ export default function Convocatorias() {
     fechaPublicacion: '', fechaApertura: '', fechaLimiteRegistro: '', fechaEvaluacion: '',
     fechaCierre: '', fechaPublicacionResultados: '', categorias: [], estado: 'Activa',
     numeroMaximoProyectos: 50, numeroMaximoIntegrantes: 5, numeroEvaluadoresPorProyecto: 2,
-    escalaEvaluacion: 5, rubricaAsignada: '',
+    escalaEvaluacion: 5,
   });
+  const [archivos, setArchivos] = useState({ bases: null, convocatoria: null, formatos: null });
   const [seccionActiva, setSeccionActiva] = useState('general');
   const [errores, setErrores] = useState({});
 
-  const puedeEditar = user?.role === ROLES.ADMINISTRADOR || user?.role === ROLES.COORDINADOR;
+  const puedeEditar = user?.roles?.some((r) => [ROLES.ADMINISTRADOR, ROLES.COORDINADOR].includes(r));
 
   useEffect(() => {
     api.get('/convocatorias')
       .then((res) => setConvocatorias(res.data))
-      .catch((err) => console.error(err))
+      .catch(() => alert('Error al cargar las convocatorias.'))
       .finally(() => setCargando(false));
   }, []);
 
@@ -166,35 +166,38 @@ export default function Convocatorias() {
       return;
     }
 
-    const payload = {
-      clave: formData.clave,
-      titulo: formData.titulo.trim(),
-      tipoConvocatoria: formData.tipoConvocatoria,
-      descripcion: formData.descripcion.trim(),
-      objetivo: formData.objetivo.trim(),
-      fechaPublicacion: formData.fechaPublicacion ? new Date(formData.fechaPublicacion + 'T12:00:00').toISOString() : null,
-      fechaApertura: formData.fechaApertura ? new Date(formData.fechaApertura + 'T12:00:00').toISOString() : null,
-      fechaLimiteRegistro: formData.fechaLimiteRegistro ? new Date(formData.fechaLimiteRegistro + 'T12:00:00').toISOString() : null,
-      fechaEvaluacion: formData.fechaEvaluacion ? new Date(formData.fechaEvaluacion + 'T12:00:00').toISOString() : null,
-      fechaCierre: formData.fechaCierre ? new Date(formData.fechaCierre + 'T12:00:00').toISOString() : null,
-      fechaPublicacionResultados: formData.fechaPublicacionResultados ? new Date(formData.fechaPublicacionResultados + 'T12:00:00').toISOString() : null,
-      categorias: JSON.stringify(formData.categorias),
-      estado: formData.estado,
-      numeroMaximoProyectos: Number(formData.numeroMaximoProyectos),
-      numeroMaximoIntegrantes: Number(formData.numeroMaximoIntegrantes),
-      numeroEvaluadoresPorProyecto: Number(formData.numeroEvaluadoresPorProyecto),
-      escalaEvaluacion: Number(formData.escalaEvaluacion),
-      rubricaAsignada: formData.rubricaAsignada,
-    };
+    const payload = new FormData();
+    payload.append('Clave', formData.clave);
+    payload.append('Titulo', formData.titulo.trim());
+    payload.append('TipoConvocatoria', formData.tipoConvocatoria);
+    payload.append('Descripcion', formData.descripcion.trim());
+    payload.append('Objetivo', formData.objetivo.trim());
+    payload.append('FechaPublicacion', formData.fechaPublicacion ? new Date(formData.fechaPublicacion + 'T12:00:00').toISOString() : '');
+    payload.append('FechaApertura', formData.fechaApertura ? new Date(formData.fechaApertura + 'T12:00:00').toISOString() : '');
+    payload.append('FechaLimiteRegistro', formData.fechaLimiteRegistro ? new Date(formData.fechaLimiteRegistro + 'T12:00:00').toISOString() : '');
+    payload.append('FechaEvaluacion', formData.fechaEvaluacion ? new Date(formData.fechaEvaluacion + 'T12:00:00').toISOString() : '');
+    payload.append('FechaCierre', formData.fechaCierre ? new Date(formData.fechaCierre + 'T12:00:00').toISOString() : '');
+    payload.append('FechaPublicacionResultados', formData.fechaPublicacionResultados ? new Date(formData.fechaPublicacionResultados + 'T12:00:00').toISOString() : '');
+    payload.append('Categorias', JSON.stringify(formData.categorias));
+    payload.append('Estado', formData.estado);
+    payload.append('NumeroMaximoProyectos', Number(formData.numeroMaximoProyectos));
+    payload.append('NumeroMaximoIntegrantes', Number(formData.numeroMaximoIntegrantes));
+    payload.append('NumeroEvaluadoresPorProyecto', Number(formData.numeroEvaluadoresPorProyecto));
+    payload.append('EscalaEvaluacion', Number(formData.escalaEvaluacion));
+    payload.append('LinkRubrica', 'https://docs.google.com/forms/d/e/1FAIpQLSdXDZtzd8jrGtR-_DK8VQX6VLAsdAeU5H4CCiDIuUlz-BdP7A/viewform');
+    if (archivos.bases) payload.append('basesPDF', archivos.bases);
+    if (archivos.convocatoria) payload.append('convocatoriaPDF', archivos.convocatoria);
+    if (archivos.formatos) payload.append('formatos', archivos.formatos);
 
     try {
-      if (editandoId) await api.put(`/convocatorias/${editandoId}`, payload);
-      else await api.post('/convocatorias', payload);
+      if (editandoId) await api.put(`/convocatorias/${editandoId}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+      else await api.post('/convocatorias', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
       cerrarModal();
       const res = await api.get('/convocatorias');
       setConvocatorias(res.data);
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.mensaje || err.response?.data?.errores?.join(', ') || JSON.stringify(err.response?.data) || err.message;
+      alert('Error al guardar la convocatoria: ' + msg);
     }
   };
 
@@ -203,7 +206,7 @@ export default function Convocatorias() {
     try {
       await api.delete(`/convocatorias/${id}`);
       setConvocatorias((prev) => prev.filter((c) => c.id !== id));
-    } catch (err) { console.error(err); }
+    } catch (err) { alert('Error al eliminar la convocatoria.'); }
   };
 
   const handleEditar = (conv) => {
@@ -227,7 +230,6 @@ export default function Convocatorias() {
       numeroMaximoIntegrantes: conv.numeroMaximoIntegrantes ?? 5,
       numeroEvaluadoresPorProyecto: conv.numeroEvaluadoresPorProyecto ?? 2,
       escalaEvaluacion: conv.escalaEvaluacion ?? 5,
-      rubricaAsignada: conv.rubricaAsignada || '',
     });
     setEditandoId(conv.id);
     setSeccionActiva('general');
@@ -242,7 +244,7 @@ export default function Convocatorias() {
       fechaPublicacion: hoyISO(), fechaApertura: '', fechaLimiteRegistro: '', fechaEvaluacion: '',
       fechaCierre: '', fechaPublicacionResultados: '', categorias: [], estado: 'Activa',
       numeroMaximoProyectos: 50, numeroMaximoIntegrantes: 5, numeroEvaluadoresPorProyecto: 2,
-      escalaEvaluacion: 5, rubricaAsignada: '',
+      escalaEvaluacion: 5,
     });
     setSeccionActiva('general');
     setErrores({});
@@ -254,6 +256,7 @@ export default function Convocatorias() {
     setEditandoId(null);
     setSeccionActiva('general');
     setErrores({});
+    setArchivos({ bases: null, convocatoria: null, formatos: null });
   };
 
   const convocatoriasFiltradas = convocatorias.filter(
@@ -440,18 +443,18 @@ export default function Convocatorias() {
                       {campoError('fechaLimiteRegistro')}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de evaluación</label>
-                      <input type="date" name="fechaEvaluacion" value={formData.fechaEvaluacion} onChange={handleInputChange} min={formData.fechaLimiteRegistro || formData.fechaApertura} className={inputClase('fechaEvaluacion')} />
-                      {campoError('fechaEvaluacion')}
-                    </div>
-                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de cierre</label>
-                      <input type="date" name="fechaCierre" value={formData.fechaCierre} onChange={handleInputChange} min={formData.fechaEvaluacion || formData.fechaLimiteRegistro} className={inputClase('fechaCierre')} />
+                      <input type="date" name="fechaCierre" value={formData.fechaCierre} onChange={handleInputChange} min={formData.fechaLimiteRegistro || formData.fechaApertura} className={inputClase('fechaCierre')} />
                       {campoError('fechaCierre')}
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de evaluación</label>
+                      <input type="date" name="fechaEvaluacion" value={formData.fechaEvaluacion} onChange={handleInputChange} min={formData.fechaCierre || formData.fechaLimiteRegistro} className={inputClase('fechaEvaluacion')} />
+                      {campoError('fechaEvaluacion')}
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Fecha publicación de resultados</label>
-                      <input type="date" name="fechaPublicacionResultados" value={formData.fechaPublicacionResultados} onChange={handleInputChange} min={formData.fechaCierre || formData.fechaEvaluacion} className={inputClase('fechaPublicacionResultados')} />
+                      <input type="date" name="fechaPublicacionResultados" value={formData.fechaPublicacionResultados} onChange={handleInputChange} min={formData.fechaEvaluacion || formData.fechaCierre} className={inputClase('fechaPublicacionResultados')} />
                       {campoError('fechaPublicacionResultados')}
                     </div>
                   </div>
@@ -505,17 +508,6 @@ export default function Convocatorias() {
                       {campoError('numeroEvaluadoresPorProyecto')}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rúbrica asignada *</label>
-                    <select name="rubricaAsignada" value={formData.rubricaAsignada} onChange={handleInputChange} className={inputClase('rubricaAsignada')}>
-                      <option value="">Seleccione una rúbrica...</option>
-                      <option value="Estandar">Estándar (Innovación, Viabilidad, Impacto, Sustentabilidad, Modelo de Negocio)</option>
-                      <option value="Tecnologia">Tecnología</option>
-                      <option value="Investigacion">Investigación</option>
-                      <option value="Emprendimiento">Emprendimiento</option>
-                    </select>
-                    {campoError('rubricaAsignada')}
-                  </div>
                 </>
               )}
 
@@ -524,18 +516,24 @@ export default function Convocatorias() {
                   <p className="text-sm text-gray-500">Adjunte los documentos oficiales de la convocatoria. Estos serán visibles para los participantes.</p>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Bases (PDF)</label>
-                    <input type="file" accept=".pdf" className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
+                    <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, bases: e.target.files[0] })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
+                    {archivos.bases && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.bases.name}</p>}
                     <p className="text-xs text-gray-400 mt-1">Formato PDF. Tamaño máximo: 10 MB.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Convocatoria PDF</label>
-                    <input type="file" accept=".pdf" className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
+                    <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, convocatoria: e.target.files[0] })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
+                    {archivos.convocatoria && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.convocatoria.name}</p>}
                     <p className="text-xs text-gray-400 mt-1">Formato PDF. Tamaño máximo: 10 MB.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Formatos</label>
-                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
-                    <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel. Puede seleccionar varios archivos.</p>
+                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => setArchivos({ ...archivos, formatos: e.target.files[0] })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
+                    {archivos.formatos && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.formatos.name}</p>}
+                    <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel.</p>
                   </div>
                 </div>
               )}

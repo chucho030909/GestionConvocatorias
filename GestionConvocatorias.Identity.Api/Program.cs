@@ -1,4 +1,5 @@
 using GestionConvocatorias.Identity.Api.Data;
+using GestionConvocatorias.Identity.Api.Middlewares;
 using GestionConvocatorias.Identity.Api.Models;
 using GestionConvocatorias.Identity.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,11 +18,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
 // Configuración de Entity Framework Core
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Allow override via environment variable (for Render)
+var envConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrEmpty(envConnectionString))
+{
+    connectionString = envConnectionString;
+}
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Configuración de Identity con roles
 builder.Services.AddIdentity<Usuario, IdentityRole<int>>()
@@ -56,14 +65,17 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Configuración de CORS (permite cualquier origen, método y encabezado)
+// Configuración de CORS (solo permite el frontend)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin();
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:5173" };
+        policy.WithOrigins(allowedOrigins);
         policy.AllowAnyMethod();
         policy.AllowAnyHeader();
+        policy.AllowCredentials();
     });
 });
 
@@ -94,8 +106,15 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHostedService<AlertaRetrasosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IArchivoService, ArchivoService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<GitHubService>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+// Configure URLs from environment (supports Render's PORT binding)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://*:{port}");
 
 // Población inicial de la base de datos (solo si está vacía)
 using (var scope = app.Services.CreateScope())
@@ -111,6 +130,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -129,5 +150,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

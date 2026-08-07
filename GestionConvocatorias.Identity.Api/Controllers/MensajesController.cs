@@ -74,6 +74,43 @@ public class MensajesController : ControllerBase
 
         return Ok(conversacion);
     }
+
+    [HttpGet("contactos")]
+    public async Task<IActionResult> ObtenerContactos()
+    {
+        var contactos = await _context.Mensajes
+            .Where(m => m.EmisorId == UsuarioId || m.ReceptorId == UsuarioId)
+            .Include(m => m.Emisor)
+            .Include(m => m.Receptor)
+            .OrderByDescending(m => m.FechaEnvio)
+            .ToListAsync();
+
+        var contactoIds = new HashSet<int>();
+        var resultado = new List<object>();
+
+        foreach (var m in contactos)
+        {
+            var otroId = m.EmisorId == UsuarioId ? m.ReceptorId : m.EmisorId;
+            if (contactoIds.Add(otroId))
+            {
+                var usuario = m.EmisorId == UsuarioId ? m.Receptor : m.Emisor;
+                var mensajesNoLeidos = await _context.Mensajes
+                    .CountAsync(msg => msg.EmisorId == otroId && msg.ReceptorId == UsuarioId && !msg.Leido);
+
+                resultado.Add(new
+                {
+                    usuarioId = otroId,
+                    nombres = usuario?.Nombres,
+                    apellidos = usuario?.Apellidos,
+                    ultimoMensaje = m.Contenido,
+                    fechaUltimoMensaje = m.FechaEnvio,
+                    mensajesNoLeidos
+                });
+            }
+        }
+
+        return Ok(resultado);
+    }
 }
 
 public class EnviarMensajeDto

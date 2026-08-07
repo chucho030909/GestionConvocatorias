@@ -255,7 +255,7 @@ function PasoDocumentos({ archivo, onArchivoChange }) {
 }
 
 function PasoConfirmacion({ formulario, integrantes, archivo }) {
-  const integrantes Lista = integrantes
+  const integrantesLista = integrantes
     .split(',')
     .map((id) => id.trim())
     .filter((id) => id);

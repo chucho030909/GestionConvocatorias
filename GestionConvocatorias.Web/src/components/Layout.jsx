@@ -15,6 +15,7 @@ import {
   CalendarDays,
   GraduationCap,
   ShieldCheck,
+  Shield,
 } from 'lucide-react';
 
 const ICONOS_ENLACES = {
@@ -29,6 +30,7 @@ const ICONOS_ENLACES = {
   mensajes: MessageSquare,
   calendario: CalendarDays,
   configuracion: Settings,
+  roles: Shield,
 };
 
 const ENLACES_POR_ROL = {
@@ -38,10 +40,12 @@ const ENLACES_POR_ROL = {
   ],
   [ROLES.DOCENTE_ASESOR]: [
     { to: '/proyectos/asignados', label: 'Proyectos', icono: 'proyectos' },
-    { to: '/mensajes', label: 'Mensajes', icono: 'mensajes' },
+    { to: '/retroalimentacion', label: 'Retroalimentación', icono: 'evaluaciones' },
   ],
   [ROLES.EVALUADOR]: [
-    { to: '/evaluaciones', label: 'Evaluaciones', icono: 'evaluaciones' },
+    { to: '/convocatorias', label: 'Convocatorias', icono: 'convocatorias' },
+    { to: '/proyectos', label: 'Proyectos Asignados', icono: 'proyectos' },
+    { to: '/evaluaciones', label: 'Mis Evaluaciones', icono: 'evaluaciones' },
   ],
   [ROLES.COORDINADOR]: [
     { to: '/dashboard', label: 'Inicio', icono: 'inicio' },
@@ -57,6 +61,7 @@ const ENLACES_POR_ROL = {
     { to: '/proyectos', label: 'Proyectos', icono: 'proyectos' },
     { to: '/evaluaciones', label: 'Evaluaciones', icono: 'evaluaciones' },
     { to: '/usuarios', label: 'Usuarios', icono: 'usuarios' },
+    { to: '/gestion-roles', label: 'Gestión Roles', icono: 'roles' },
     { to: '/reportes', label: 'Reportes', icono: 'reportes' },
     { to: '/configuracion', label: 'Configuración', icono: 'configuracion' },
   ],
@@ -76,7 +81,17 @@ export default function Layout() {
     navigate('/');
   };
 
-  const enlaces = (user?.role && ENLACES_POR_ROL[user.role]) || [];
+  const enlaces = (() => {
+    if (!user?.roles) return [];
+    const mapa = new Map();
+    for (const rol of user.roles) {
+      const links = ENLACES_POR_ROL[rol] || [];
+      for (const link of links) {
+        if (!mapa.has(link.to)) mapa.set(link.to, link);
+      }
+    }
+    return Array.from(mapa.values());
+  })();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -134,7 +149,7 @@ export default function Layout() {
                 {user?.name || 'Usuario'}
               </p>
               <p className="text-xs text-gray-500 leading-tight">
-                {user?.role || 'Sin rol'}
+                {user?.roles?.join(', ') || 'Sin rol'}
               </p>
             </div>
           </div>

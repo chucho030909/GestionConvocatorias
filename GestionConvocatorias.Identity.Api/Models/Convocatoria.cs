@@ -51,8 +51,20 @@ public class Convocatoria
     [StringLength(500)]
     public string RubricaAsignada { get; set; } = string.Empty;
 
+    [StringLength(1000)]
+    public string? LinkRubrica { get; set; }
+
     [StringLength(20)]
     public string Estado { get; set; } = "Activa";
+
+    [StringLength(500)]
+    public string? RutaBases { get; set; }
+
+    [StringLength(500)]
+    public string? RutaConvocatoriaPDF { get; set; }
+
+    [StringLength(500)]
+    public string? RutaFormatos { get; set; }
 
     public ICollection<Proyecto>? Proyectos { get; set; }
 }

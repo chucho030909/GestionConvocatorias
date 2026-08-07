@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Search, Download, Calendar, Tag } from 'lucide-react';
-import api from '../services/api';
+import api, { exportarProyecto } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const CATEGORIAS = [
@@ -12,7 +12,7 @@ const CATEGORIAS = [
 
 export default function Reportes() {
   const { user } = useAuth();
-  if (user?.role !== 'Administrador') {
+  if (!user?.roles?.some(r => ['Administrador', 'Coordinador'].includes(r))) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -39,7 +39,6 @@ export default function Reportes() {
       const res = await api.get('/reportes/historico', { params });
       setHistorico(res.data);
     } catch (err) {
-      console.error(err);
       setError('No se pudo obtener el histórico.');
     } finally {
       setCargando(false);
@@ -50,7 +49,7 @@ export default function Reportes() {
     try {
       await exportarProyecto(proyectoId);
     } catch (err) {
-      console.error(err);
+      alert('Error al exportar el proyecto.');
     }
   };
 

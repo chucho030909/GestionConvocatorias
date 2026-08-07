@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import FormularioEvaluacion from '../components/FormularioEvaluacion';
-import { ClipboardCheck, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 
 const TABS = [
   { id: 'asignadas', label: 'Asignadas' },
@@ -62,7 +62,7 @@ export default function Evaluaciones() {
     try {
       setCargando(true);
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/proyectos', {
+      const res = await fetch('/api/proyectos/AsignadosEvaluador', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -271,12 +271,24 @@ export default function Evaluaciones() {
                         <EstadoPill estado={obtenerEstado(proyecto)} />
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setProyectoSeleccionado(proyecto)}
-                          className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          Evaluar
-                        </button>
+                        {proyecto.convocatoria?.linkRubrica ? (
+                          <a
+                            href={proyecto.convocatoria.linkRubrica}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                          >
+                            <ExternalLink size={16} />
+                            Evaluar en Google Forms
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => setProyectoSeleccionado(proyecto)}
+                            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            Evaluar
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

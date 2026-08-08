@@ -80,13 +80,29 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        // Check environment variable first (for Render), then config
+        string[] allowedOrigins;
         var envOrigins = Environment.GetEnvironmentVariable("Cors__AllowedOrigins");
-        var allowedOrigins = !string.IsNullOrEmpty(envOrigins)
-            ? System.Text.Json.JsonSerializer.Deserialize<string[]>(envOrigins)
-            : builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        if (!string.IsNullOrEmpty(envOrigins))
+        {
+            // Try JSON array first: ["url1","url2"]
+            try
+            {
+                allowedOrigins = System.Text.Json.JsonSerializer.Deserialize<string[]>(envOrigins)!;
+            }
+            catch
+            {
+                // Fallback: comma-separated or plain URL
+                allowedOrigins = envOrigins
+                    .Replace("[", "").Replace("]", "").Replace("\"", "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+        }
+        else
+        {
+            allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
                 ?? new[] { "http://localhost:5173" };
-        policy.WithOrigins(allowedOrigins!);
+        }
+        policy.WithOrigins(allowedOrigins);
         policy.AllowAnyMethod();
         policy.AllowAnyHeader();
         policy.AllowCredentials();

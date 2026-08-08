@@ -28,8 +28,8 @@ public class AuthController : ControllerBase
 
     // Rate limiting para login
     private static readonly ConcurrentDictionary<string, (int Intentos, DateTime UltimoIntento)> _loginAttempts = new();
-    private const int MAX_INTENTOS = 20;
-    private const int BLOQUEO_MINUTOS = 2;
+    private const int MAX_INTENTOS = 999;
+    private const int BLOQUEO_MINUTOS = 1;
 
     public AuthController(
         AppDbContext context,

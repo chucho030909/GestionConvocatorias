@@ -1,6 +1,22 @@
 # GestionConvocatorias
 
 Sistema de gestión de convocatorias y proyectos con evaluación asistida por IA.
+# Autores
+Jose de Jesus Islas Lopez
+Christopher Camargo Gonzalez
+Felicitas Rubi Diego Garcia
+
+# Universidad Tecnologica de Tula-Tepeji
+**Ingenieria en Gestion y Desarrollo de Software Multiplataforma**
+
+# Empresa:
+**Universidad Tecnologica de Tula Tepeji**
+
+# Asesora Academica:
+**Odisey Porras Beltran**
+
+# Nombre de el asesor colaborador:
+**Jose Angel Perez Henandez**
 
 ## Arquitectura
 
@@ -83,3 +99,8 @@ python AprobacionCretido.py
 - **Administrador**: Crea convocatorias, visualiza todos los proyectos del sistema y utiliza las herramientas de IA para sugerir evaluadores compatibles con cada proyecto.
 - **Evaluador**: Califica los proyectos asignados mediante una puntuación (0-100) y comentarios, registrando las evaluaciones en el sistema.
 - **Postulante**: Registra nuevos proyectos asociándolos a una convocatoria y consulta el estado de sus propios proyectos.
+
+Este software fue desarrollado durante el cuatrimestre mayo-agosto 2026 en la asignatura de Nombre de la Asignatura.
+
+Los derechos morales pertenecen a sus autores.
+Queda prohibida la eliminación de los créditos originales.

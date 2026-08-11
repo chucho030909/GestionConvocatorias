@@ -37,7 +37,7 @@ if (!string.IsNullOrEmpty(envConnectionString))
     var database = uri.AbsolutePath.Trim('/');
     var username = userInfo[0];
     var password = userInfo[1];
-    connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;";
+    connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";;;
 }
 // Local development fallback - use SQLite if no PostgreSQL connection string (for local testing only)
 if (string.IsNullOrEmpty(envConnectionString) && (string.IsNullOrEmpty(connectionString) || connectionString.Contains("localhost")))
@@ -162,7 +162,14 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-    await context.Database.MigrateAsync();
+    try
+    {
+        await context.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[WARN] Migration warning: {ex.Message}");
+    }
     if (!await context.Users.AnyAsync())
     {
         await DbSeeder.SeedAsync(context, roleManager, userManager);

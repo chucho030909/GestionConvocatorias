@@ -39,8 +39,18 @@ if (!string.IsNullOrEmpty(envConnectionString))
     var password = userInfo[1];
     connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;";
 }
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// Local development fallback - use SQLite if no PostgreSQL connection string (for local testing only)
+if (string.IsNullOrEmpty(envConnectionString) && (string.IsNullOrEmpty(connectionString) || connectionString.Contains("localhost")))
+{
+    var localDbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlite($"DataSource={localDbPath}"));
+}
+else
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // Configuración de Identity con roles
 builder.Services.AddIdentity<Usuario, IdentityRole<int>>()

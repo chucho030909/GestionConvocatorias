@@ -323,7 +323,7 @@ public class ConvocatoriasController : ControllerBase
         IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
     {
         string? rutaBases = null, rutaConvocatoria = null, rutaFormatos = null;
-        var carpeta = Path.Combine(AppContext.BaseDirectory, "ArchivosConvocatorias");
+        var carpeta = Path.Combine(Directory.Exists("/app/ArchivosGuardados") ? "/app/ArchivosGuardados" : AppContext.BaseDirectory, "ArchivosConvocatorias");
         Directory.CreateDirectory(carpeta);
 
         // Validar y guardar bases PDF

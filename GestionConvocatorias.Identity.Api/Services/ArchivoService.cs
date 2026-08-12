@@ -6,7 +6,11 @@ public class ArchivoService : IArchivoService
 
     public ArchivoService(IWebHostEnvironment env)
     {
-        _raizArchivos = Path.Combine(env.ContentRootPath, "ArchivosGuardados");
+        // Check if we're on Render (disk mounted at /app/ArchivosGuardados)
+        if (Directory.Exists("/app/ArchivosGuardados"))
+            _raizArchivos = "/app/ArchivosGuardados";
+        else
+            _raizArchivos = Path.Combine(env.ContentRootPath, "ArchivosGuardados");
         if (!Directory.Exists(_raizArchivos))
             Directory.CreateDirectory(_raizArchivos);
     }

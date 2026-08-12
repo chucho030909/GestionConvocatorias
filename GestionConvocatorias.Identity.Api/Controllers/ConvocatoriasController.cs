@@ -319,11 +319,22 @@ public class ConvocatoriasController : ControllerBase
         return errores;
     }
 
+    private static string ObtenerCarpetaArchivos()
+    {
+        if (Directory.Exists("/app/ArchivosGuardados"))
+            return "/app/ArchivosGuardados";
+        if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "ArchivosConvocatorias")))
+            return AppContext.BaseDirectory;
+        var fallback = Path.Combine(AppContext.BaseDirectory, "ArchivosConvocatorias");
+        Directory.CreateDirectory(fallback);
+        return AppContext.BaseDirectory;
+    }
+
     private async Task<(string? rutaBases, string? rutaConvocatoria, string? rutaFormatos)> GuardarArchivosConvocatoria(
         IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
     {
         string? rutaBases = null, rutaConvocatoria = null, rutaFormatos = null;
-        var carpeta = Path.Combine(Directory.Exists("/app/ArchivosGuardados") ? "/app/ArchivosGuardados" : AppContext.BaseDirectory, "ArchivosConvocatorias");
+        var carpeta = Path.Combine(ObtenerCarpetaArchivos(), "ArchivosConvocatorias");
         Directory.CreateDirectory(carpeta);
 
         // Validar y guardar bases PDF
@@ -338,7 +349,7 @@ public class ConvocatoriasController : ControllerBase
             var ruta = Path.Combine(carpeta, nombre);
             using var stream = new FileStream(ruta, FileMode.Create);
             await basesPDF.CopyToAsync(stream);
-            rutaBases = ruta;
+            rutaBases = Path.Combine("ArchivosConvocatorias", nombre);
         }
 
         // Validar y guardar convocatoria PDF
@@ -353,7 +364,7 @@ public class ConvocatoriasController : ControllerBase
             var ruta = Path.Combine(carpeta, nombre);
             using var stream = new FileStream(ruta, FileMode.Create);
             await convocatoriaPDF.CopyToAsync(stream);
-            rutaConvocatoria = ruta;
+            rutaConvocatoria = Path.Combine("ArchivosConvocatorias", nombre);
         }
 
         // Validar y guardar formatos
@@ -370,10 +381,30 @@ public class ConvocatoriasController : ControllerBase
             var ruta = Path.Combine(carpeta, nombre);
             using var stream = new FileStream(ruta, FileMode.Create);
             await formatos.CopyToAsync(stream);
-            rutaFormatos = ruta;
+            rutaFormatos = Path.Combine("ArchivosConvocatorias", nombre);
         }
 
         return (rutaBases, rutaConvocatoria, rutaFormatos);
+    }
+
+    private static string ResolverRuta(string rutaRelativa)
+    {
+        if (string.IsNullOrEmpty(rutaRelativa))
+            return rutaRelativa;
+
+        if (System.IO.File.Exists(rutaRelativa))
+            return rutaRelativa;
+
+        var baseDir = ObtenerCarpetaArchivos();
+        var fullPath = Path.Combine(baseDir, rutaRelativa);
+        if (System.IO.File.Exists(fullPath))
+            return fullPath;
+
+        var localPath = Path.Combine(AppContext.BaseDirectory, rutaRelativa);
+        if (System.IO.File.Exists(localPath))
+            return localPath;
+
+        return fullPath;
     }
 
     [HttpGet("{id}/archivos/{tipo}")]
@@ -392,10 +423,12 @@ public class ConvocatoriasController : ControllerBase
             _ => null
         };
 
-        if (string.IsNullOrEmpty(ruta) || !System.IO.File.Exists(ruta))
+        var rutaResuelta = ResolverRuta(ruta);
+
+        if (string.IsNullOrEmpty(rutaResuelta) || !System.IO.File.Exists(rutaResuelta))
             return NotFound(new { mensaje = "Archivo no encontrado." });
 
-        var extension = Path.GetExtension(ruta).ToLowerInvariant();
+        var extension = Path.GetExtension(rutaResuelta).ToLowerInvariant();
         var contentType = extension switch
         {
             ".pdf" => "application/pdf",
@@ -404,7 +437,7 @@ public class ConvocatoriasController : ControllerBase
             _ => "application/octet-stream"
         };
 
-        var bytes = await System.IO.File.ReadAllBytesAsync(ruta);
-        return File(bytes, contentType, Path.GetFileName(ruta));
+        var bytes = await System.IO.File.ReadAllBytesAsync(rutaResuelta);
+        return File(bytes, contentType, Path.GetFileName(rutaResuelta));
     }
 }

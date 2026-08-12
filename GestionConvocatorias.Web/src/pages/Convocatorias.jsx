@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, MoreHorizontal, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Plus, MoreHorizontal, X, ChevronRight, ChevronLeft, FileText, Download, Eye } from 'lucide-react';
 import api from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 
@@ -105,6 +106,7 @@ function validarSeccionConfig(f) {
 
 export default function Convocatorias() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [convocatorias, setConvocatorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -118,6 +120,7 @@ export default function Convocatorias() {
     escalaEvaluacion: 5,
   });
   const [archivos, setArchivos] = useState({ bases: null, convocatoria: null, formatos: null });
+  const [archivosExistentes, setArchivosExistentes] = useState({ bases: null, convocatoria: null, formatos: null });
   const [seccionActiva, setSeccionActiva] = useState('general');
   const [errores, setErrores] = useState({});
 
@@ -231,6 +234,11 @@ export default function Convocatorias() {
       numeroEvaluadoresPorProyecto: conv.numeroEvaluadoresPorProyecto ?? 2,
       escalaEvaluacion: conv.escalaEvaluacion ?? 5,
     });
+    setArchivosExistentes({
+      bases: conv.rutaBases || null,
+      convocatoria: conv.rutaConvocatoriaPDF || null,
+      formatos: conv.rutaFormatos || null,
+    });
     setEditandoId(conv.id);
     setSeccionActiva('general');
     setIsModalOpen(true);
@@ -257,6 +265,7 @@ export default function Convocatorias() {
     setSeccionActiva('general');
     setErrores({});
     setArchivos({ bases: null, convocatoria: null, formatos: null });
+    setArchivosExistentes({ bases: null, convocatoria: null, formatos: null });
   };
 
   const convocatoriasFiltradas = convocatorias.filter(
@@ -345,7 +354,13 @@ export default function Convocatorias() {
                     <td className="px-6 py-4 text-sm text-gray-600">{formatearFecha(c.fechaCierre)}</td>
                     <td className="px-6 py-4"><EstadoPill estado={c.estado} /></td>
                     <td className="px-6 py-4 text-right">
-                      {puedeEditar && <BotonAcciones convocatoria={c} onEditar={handleEditar} onEliminar={handleEliminar} />}
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => navigate(`/convocatorias/${c.id}`)} title="Ver detalle"
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+                          <Eye size={18} />
+                        </button>
+                        {puedeEditar && <BotonAcciones convocatoria={c} onEditar={handleEditar} onEliminar={handleEliminar} />}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -516,23 +531,44 @@ export default function Convocatorias() {
                   <p className="text-sm text-gray-500">Adjunte los documentos oficiales de la convocatoria. Estos serán visibles para los participantes.</p>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Bases (PDF)</label>
+                    {editandoId && archivosExistentes.bases && !archivos.bases && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
+                        <FileText size={14} className="text-green-600" />
+                        <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.bases.split('/').pop()}</span>
+                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/bases`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                      </div>
+                    )}
                     <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, bases: e.target.files[0] })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
-                    {archivos.bases && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.bases.name}</p>}
+                    {archivos.bases && <p className="text-xs text-green-600 mt-1">Nuevo archivo: {archivos.bases.name}</p>}
                     <p className="text-xs text-gray-400 mt-1">Formato PDF. Tamaño máximo: 10 MB.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Convocatoria PDF</label>
+                    {editandoId && archivosExistentes.convocatoria && !archivos.convocatoria && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
+                        <FileText size={14} className="text-green-600" />
+                        <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.convocatoria.split('/').pop()}</span>
+                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/convocatoria`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                      </div>
+                    )}
                     <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, convocatoria: e.target.files[0] })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
-                    {archivos.convocatoria && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.convocatoria.name}</p>}
+                    {archivos.convocatoria && <p className="text-xs text-green-600 mt-1">Nuevo archivo: {archivos.convocatoria.name}</p>}
                     <p className="text-xs text-gray-400 mt-1">Formato PDF. Tamaño máximo: 10 MB.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Formatos</label>
+                    {editandoId && archivosExistentes.formatos && !archivos.formatos && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
+                        <FileText size={14} className="text-green-600" />
+                        <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.formatos.split('/').pop()}</span>
+                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/formatos`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                      </div>
+                    )}
                     <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => setArchivos({ ...archivos, formatos: e.target.files[0] })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
-                    {archivos.formatos && <p className="text-xs text-green-600 mt-1">Seleccionado: {archivos.formatos.name}</p>}
+                    {archivos.formatos && <p className="text-xs text-green-600 mt-1">Nuevo archivo: {archivos.formatos.name}</p>}
                     <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel.</p>
                   </div>
                 </div>

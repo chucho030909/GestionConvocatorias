@@ -190,8 +190,8 @@ export default function Convocatorias() {
     if (archivos.formatos) payload.append('formatos', archivos.formatos);
 
     try {
-      if (editandoId) await api.put(`/convocatorias/${editandoId}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
-      else await api.post('/convocatorias', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (editandoId) await api.put(`/convocatorias/${editandoId}`, payload);
+      else await api.post('/convocatorias', payload);
       cerrarModal();
       const res = await api.get('/convocatorias');
       setConvocatorias(res.data);

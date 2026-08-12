@@ -115,9 +115,7 @@ function RegistroDocente({ onBack }) {
       if (archivos.identificacion) formData.append('identificacionPDF', archivos.identificacion);
       if (archivos.cartaConfidencialidad) formData.append('cartaConfidencialidadPDF', archivos.cartaConfidencialidad);
 
-      await api.post('/auth/registrar-docente', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/auth/registrar-docente', formData);
       setExitoso('Docente registrado exitosamente.');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {

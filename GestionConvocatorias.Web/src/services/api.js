@@ -57,9 +57,7 @@ export async function obtenerMiProyectoEnConvocatoria(convocatoriaId) {
 
 // Proyectos (Estudiante)
 export async function crearProyecto(formData) {
-  const res = await api.post('/proyectos', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await api.post('/proyectos', formData);
   return res.data;
 }
 
@@ -81,9 +79,7 @@ export async function agregarIntegrante(proyectoId, email) {
 
 // Avances
 export async function crearAvance(formData) {
-  const res = await api.post('/avances', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await api.post('/avances', formData);
   return res.data;
 }
 
@@ -94,9 +90,7 @@ export async function obtenerAvancesPorProyecto(proyectoId) {
 
 // Documentos
 export async function subirDocumento(formData) {
-  const res = await api.post('/documentos/subir', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await api.post('/documentos/subir', formData);
   return res.data;
 }
 
@@ -186,9 +180,7 @@ export async function restablecerContrasena(token, nuevaContrasena) {
 }
 
 export async function registrarEstudiante(formData) {
-  const res = await api.post('/auth/registrar-estudiante', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await api.post('/auth/registrar-estudiante', formData);
   return res.data;
 }
 

@@ -151,9 +151,7 @@ export default function Proyectos() {
     fd.append('proyectoId', proyectoId);
     fd.append('archivo', archivo);
     try {
-      await api.post('/documentos/subir', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/documentos/subir', fd);
       setArchivo(null);
     } catch (err) {
       alert('Ocurrió un error. Por favor, intenta de nuevo.');

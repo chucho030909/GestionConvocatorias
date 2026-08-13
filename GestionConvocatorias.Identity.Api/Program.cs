@@ -153,8 +153,11 @@ builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 // Configure URLs from environment (supports Render's PORT binding)
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Urls.Add($"http://*:{port}");
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    app.Urls.Add($"http://*:{port}");
+}
 
 // Población inicial de la base de datos (solo si está vacía)
 using (var scope = app.Services.CreateScope())

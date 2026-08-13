@@ -4,7 +4,7 @@ import {
   ArrowLeft, Calendar, CheckCircle, Clock, FileText, Upload,
   Users, Award, FolderOpen, Plus, ExternalLink, Package, Download, GitBranch, Settings, File
 } from 'lucide-react';
-import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, descargarArchivoConvocatoria, crearRepositorio } from '../services/api';
+import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, descargarArchivoAutenticado, descargarArchivoConvocatoria, crearRepositorio } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 import CrearProyectoModal from '../components/CrearProyectoModal';
 import ListaAvances from '../components/ListaAvances';
@@ -476,10 +476,10 @@ export default function ConvocatoriaDetalle() {
                 <div>
                   <label className="text-xs text-gray-400 uppercase tracking-wide">Propuesta</label>
                   <div className="mt-1">
-                    <a href={descargarArchivo(miProyecto.rutaPropuestaPDF)} target="_blank" rel="noopener noreferrer"
+                    <button onClick={() => descargarArchivoAutenticado(descargarArchivo(miProyecto.rutaPropuestaPDF), 'propuesta.pdf')}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors">
                       <FileText size={16} /> Ver propuesta (PDF)
-                    </a>
+                    </button>
                   </div>
                 </div>
               )}
@@ -488,10 +488,10 @@ export default function ConvocatoriaDetalle() {
                 <label className="text-xs text-gray-400 uppercase tracking-wide">Código Fuente</label>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {miProyecto.rutaCodigoFuente && (
-                    <a href={descargarArchivo(miProyecto.rutaCodigoFuente)} download
+                    <button onClick={() => descargarArchivoAutenticado(descargarArchivo(miProyecto.rutaCodigoFuente), 'codigo.zip')}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors">
                       <Package size={16} /> Descargar código (ZIP) <Download size={14} className="text-gray-400" />
-                    </a>
+                    </button>
                   )}
                   {miProyecto.gitHubUrl && (
                     <a href={miProyecto.gitHubUrl} target="_blank" rel="noopener noreferrer"

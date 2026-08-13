@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="GestionConvocatorias.Identity.Api/GestionConvocatorias.Identity.Api.csproj" />
+  <Project Path="GestionConvocatorias.Tests/GestionConvocatorias.Tests.csproj" />
+</Solution>

@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - PORT=5000
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=GestionConvocatoriasDB;Username=postgres;Password=YourStrong!Password123
+      - Jwt__Key=kcEqLGijSq0QV+7jEf3ucB0B4dk4QmyjVMYZdeDIP+Q=
+      - Jwt__Issuer=GestionConvocatoriasIdentityApi
+      - Jwt__Audience=GestionConvocatoriasClientes
+      - FrontendUrl=http://localhost:5173
+      - Smtp__Host=smtp.gmail.com
+      - Smtp__Port=587
+      - Smtp__Username=your-email@gmail.com
+      - Smtp__Password=your-app-password
+      - Smtp__From=your-email@gmail.com
+      - GitHub__Token=your-github-token
+      - GitHub__Organization=UTTT-ProyectosGestion
+      - Cors__AllowedOrigins__0=http://localhost:5173
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=GestionConvocatoriasDB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=YourStrong!Password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./GestionConvocatorias.Web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

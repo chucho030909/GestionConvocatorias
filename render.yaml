@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: gestion-convocatorias-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    build:
+      dockerfilePath: ./Dockerfile
+      contextDir: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: PORT
+        value: 10000
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__Issuer
+        value: GestionConvocatoriasIdentityApi
+      - key: Jwt__Audience
+        value: GestionConvocatoriasClientes
+      - key: Smtp__Host
+        sync: false
+      - key: Smtp__Port
+        value: "587"
+      - key: Smtp__Username
+        sync: false
+      - key: Smtp__Password
+        sync: false
+      - key: Smtp__From
+        sync: false
+      - key: GitHub__Token
+        sync: false
+      - key: GitHub__Organization
+        sync: false
+      - key: FrontendUrl
+        value: https://gestion-convocatorias-web.onrender.com
+      - key: Cors__AllowedOrigins
+        value: '["https://gestion-convocatorias-web.onrender.com","http://localhost:5173"]'
+    disk:
+      name: gestion-convocatorias-data
+      mountPath: /app/ArchivosGuardados
+      sizeGB: 1
+
+  - type: web
+    name: gestion-convocatorias-web
+    runtime: docker
+    dockerfilePath: ./GestionConvocatorias.Web/Dockerfile
+    build:
+      dockerfilePath: ./GestionConvocatorias.Web/Dockerfile
+      contextDir: ./GestionConvocatorias.Web
+      args:
+        - VITE_API_URL=https://gestion-convocatorias-api.onrender.com/api
+    envVars:
+      - key: NODE_ENV
+        value: production

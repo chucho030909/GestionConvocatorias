@@ -438,6 +438,7 @@ public class ConvocatoriasController : ControllerBase
         };
 
         var bytes = await System.IO.File.ReadAllBytesAsync(rutaResuelta);
+        Response.Headers.Add("Content-Disposition", $"inline; filename=\"{Path.GetFileName(rutaResuelta)}\"");
         return File(bytes, contentType, Path.GetFileName(rutaResuelta));
     }
 }

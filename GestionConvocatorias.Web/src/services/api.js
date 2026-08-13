@@ -99,6 +99,33 @@ export function descargarArchivo(rutaRelativa) {
   return `${api.defaults.baseURL}/proyectos/archivos/${encodeURIComponent(rutaRelativa)}`;
 }
 
+export async function descargarArchivoAutenticado(url, nombreArchivo = 'archivo') {
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('No se pudo descargar el archivo');
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
+}
+
+export async function descargarArchivoConvocatoria(convocatoriaId, tipo, nombreArchivo = 'archivo') {
+  const url = `${api.defaults.baseURL}/convocatorias/${convocatoriaId}/archivos/${tipo}`;
+  await descargarArchivoAutenticado(url, nombreArchivo);
+}
+
+export function archivoConvocatoriaUrl(convocatoriaId, tipo) {
+  const token = localStorage.getItem('token');
+  return `${api.defaults.baseURL}/convocatorias/${convocatoriaId}/archivos/${tipo}?token=${token || ''}`;
+}
+
 // Evaluador
 export async function sugerirEvaluador(proyectoId) {
   const res = await api.post(`/evaluaciones/sugerir/${proyectoId}`);

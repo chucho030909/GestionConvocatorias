@@ -77,6 +77,11 @@ export default function Proyectos() {
     calificacion: '',
   });
 
+  // Modal: personalizar rúbrica de convocatoria (Coordinador/Admin)
+  const [isRubricaModalOpen, setIsRubricaModalOpen] = useState(false);
+  const [proyectoRubrica, setProyectoRubrica] = useState(null);
+  const [rubricaUrl, setRubricaUrl] = useState('');
+
   // IA
   const [evaluadoresSugeridos, setEvaluadoresSugeridos] = useState([]);
   const [proyectoEvaluadorId, setProyectoEvaluadorId] = useState(null);
@@ -236,6 +241,49 @@ export default function Proyectos() {
     }
   };
 
+  const abrirModalRubrica = (proyecto) => {
+    setProyectoRubrica(proyecto);
+    setRubricaUrl(proyecto.convocatoria?.linkRubrica || '');
+    setIsRubricaModalOpen(true);
+  };
+
+  const handleRubricaSubmit = async (e) => {
+    e.preventDefault();
+    if (!proyectoRubrica?.convocatoriaId) {
+      alert('Este proyecto no tiene convocatoria asociada.');
+      return;
+    }
+    try {
+      const conv = proyectoRubrica.convocatoria;
+      const payload = new FormData();
+      payload.append('Clave', conv.clave);
+      payload.append('Titulo', conv.titulo);
+      payload.append('TipoConvocatoria', conv.tipoConvocatoria);
+      payload.append('Descripcion', conv.descripcion || '');
+      payload.append('Objetivo', conv.objetivo || '');
+      payload.append('FechaPublicacion', conv.fechaPublicacion);
+      payload.append('FechaApertura', conv.fechaApertura);
+      payload.append('FechaLimiteRegistro', conv.fechaLimiteRegistro);
+      payload.append('FechaEvaluacion', conv.fechaEvaluacion);
+      payload.append('FechaCierre', conv.fechaCierre);
+      payload.append('FechaPublicacionResultados', conv.fechaPublicacionResultados);
+      payload.append('Categorias', conv.categorias || '[]');
+      payload.append('Estado', conv.estado);
+      payload.append('NumeroMaximoProyectos', conv.numeroMaximoProyectos);
+      payload.append('NumeroMaximoIntegrantes', conv.numeroMaximoIntegrantes);
+      payload.append('NumeroEvaluadoresPorProyecto', conv.numeroEvaluadoresPorProyecto);
+      payload.append('EscalaEvaluacion', conv.escalaEvaluacion);
+      payload.append('LinkRubrica', rubricaUrl.trim());
+      await api.put(`/convocatorias/${proyectoRubrica.convocatoriaId}`, payload);
+      setIsRubricaModalOpen(false);
+      setProyectoRubrica(null);
+      alert('Rúbrica actualizada correctamente.');
+      obtenerProyectos();
+    } catch (err) {
+      alert(err.response?.data?.mensaje || 'Error al actualizar la rúbrica.');
+    }
+  };
+
   const manejarSugerir = async (proyectoId) => {
     setCargandoIA(true);
     try {
@@ -348,7 +396,7 @@ export default function Proyectos() {
                   {tieneRol(ROLES.EVALUADOR) && (
                     <>
                       <a
-                        href="https://docs.google.com/forms/d/e/1FAIpQLSdXDZtzd8jrGtR-_DK8VQX6VLAsdAeU5H4CCiDIuUlz-BdP7A/viewform"
+                        href={p.convocatoria?.linkRubrica || "https://docs.google.com/forms/d/e/1FAIpQLSflbor-6O_VoIweugafuXrM0akysL7AAjyLRgDILt5uLa0Qxg/viewform"}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 inline-block"
@@ -401,6 +449,13 @@ export default function Proyectos() {
                         }`}
                       >
                         {p.evaluador ? `eval: ${p.evaluador.nombres} ${p.evaluador.apellidos}` : 'Asignar Evaluador'}
+                      </button>
+                      <button
+                        onClick={() => abrirModalRubrica(p)}
+                        className="bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-yellow-700"
+                        title="Personalizar la rúbrica de esta convocatoria"
+                      >
+                        Rúbrica
                       </button>
                     </>
                   )}
@@ -548,6 +603,35 @@ export default function Proyectos() {
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setIsAsesoriaModalOpen(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-400">Cancelar</button>
               <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">Guardar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Rúbrica de convocatoria (Coordinador/Admin) */}
+      {isRubricaModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <form onSubmit={handleRubricaSubmit} className="bg-white p-6 rounded-lg w-full max-w-lg">
+            <h2 className="text-xl font-bold mb-2">Configurar Rúbrica de Evaluación</h2>
+            {proyectoRubrica?.convocatoria && (
+              <p className="text-sm text-gray-500 mb-4">
+                Convocatoria: {proyectoRubrica.convocatoria.clave} — {proyectoRubrica.convocatoria.titulo}
+              </p>
+            )}
+            <label className="block text-sm text-gray-600 mb-1">URL del formulario de rúbrica</label>
+            <input
+              type="url"
+              value={rubricaUrl}
+              onChange={(e) => setRubricaUrl(e.target.value)}
+              className="w-full border p-2 mb-2 rounded"
+              placeholder="https://docs.google.com/forms/..."
+            />
+            <p className="text-xs text-gray-400 mb-4">
+              Los evaluadores usarán esta URL al pulsar "Evaluar Proyecto". Déjalo vacío para usar la rúbrica por defecto.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setIsRubricaModalOpen(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-400">Cancelar</button>
+              <button type="submit" className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700">Guardar</button>
             </div>
           </form>
         </div>

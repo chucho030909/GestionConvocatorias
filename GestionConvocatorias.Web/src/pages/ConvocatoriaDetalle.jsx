@@ -4,7 +4,7 @@ import {
   ArrowLeft, Calendar, CheckCircle, Clock, FileText, Upload,
   Users, Award, FolderOpen, Plus, ExternalLink, Package, Download, GitBranch, Settings, File
 } from 'lucide-react';
-import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, crearRepositorio } from '../services/api';
+import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, descargarArchivoConvocatoria, crearRepositorio } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 import CrearProyectoModal from '../components/CrearProyectoModal';
 import ListaAvances from '../components/ListaAvances';
@@ -53,25 +53,22 @@ function EstadoProyectoPill({ estado }) {
   );
 }
 
-function DocumentoLink({ url, label }) {
-  if (!url) return <span className="text-sm text-gray-400 italic">No disponible</span>;
+function DocumentoLink({ onClick, label }) {
+  if (!onClick) return <span className="text-sm text-gray-400 italic">No disponible</span>;
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      onClick={onClick}
       className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
     >
       <FileText size={16} className="text-gray-400" />
       {label}
       <Download size={14} className="text-gray-400 ml-auto" />
-    </a>
+    </button>
   );
 }
 
 function VistaAdmin({ convocatoria }) {
   const categorias = (() => { try { return JSON.parse(convocatoria.categorias || '[]'); } catch { return []; } })();
-  const apiBase = api.defaults.baseURL;
 
   return (
     <div className="space-y-6">
@@ -190,15 +187,18 @@ function VistaAdmin({ convocatoria }) {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Bases</label>
-            <DocumentoLink url={convocatoria.rutaBases ? `${apiBase}/convocatorias/${convocatoria.id}/archivos/bases` : null} label="Bases de la convocatoria" />
+            <DocumentoLink onClick={convocatoria.rutaBases ? () => descargarArchivoConvocatoria(convocatoria.id, 'bases', 'bases.pdf') : null} label="Bases de la convocatoria" />
+            {convocatoria.rutaBases && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaBases.split('/').pop()}</p>}
           </div>
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Convocatoria PDF</label>
-            <DocumentoLink url={convocatoria.rutaConvocatoriaPDF ? `${apiBase}/convocatorias/${convocatoria.id}/archivos/convocatoria` : null} label="Documento de convocatoria" />
+            <DocumentoLink onClick={convocatoria.rutaConvocatoriaPDF ? () => descargarArchivoConvocatoria(convocatoria.id, 'convocatoria', 'convocatoria.pdf') : null} label="Documento de convocatoria" />
+            {convocatoria.rutaConvocatoriaPDF && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaConvocatoriaPDF.split('/').pop()}</p>}
           </div>
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Formatos</label>
-            <DocumentoLink url={convocatoria.rutaFormatos ? `${apiBase}/convocatorias/${convocatoria.id}/archivos/formatos` : null} label="Formatos descargables" />
+            <DocumentoLink onClick={convocatoria.rutaFormatos ? () => descargarArchivoConvocatoria(convocatoria.id, 'formatos', 'formatos') : null} label="Formatos descargables" />
+            {convocatoria.rutaFormatos && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaFormatos.split('/').pop()}</p>}
           </div>
         </div>
       </div>

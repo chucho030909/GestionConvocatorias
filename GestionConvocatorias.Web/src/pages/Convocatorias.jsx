@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, MoreHorizontal, X, ChevronRight, ChevronLeft, FileText, Download, Eye } from 'lucide-react';
-import api from '../services/api';
+import api, { descargarArchivoConvocatoria } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 
 const CATEGORIAS_OPCIONES = [
@@ -187,17 +187,37 @@ export default function Convocatorias() {
     payload.append('NumeroMaximoIntegrantes', Number(formData.numeroMaximoIntegrantes));
     payload.append('NumeroEvaluadoresPorProyecto', Number(formData.numeroEvaluadoresPorProyecto));
     payload.append('EscalaEvaluacion', Number(formData.escalaEvaluacion));
-    payload.append('LinkRubrica', 'https://docs.google.com/forms/d/e/1FAIpQLSdXDZtzd8jrGtR-_DK8VQX6VLAsdAeU5H4CCiDIuUlz-BdP7A/viewform');
+    payload.append('LinkRubrica', 'https://docs.google.com/forms/d/e/1FAIpQLSflbor-6O_VoIweugafuXrM0akysL7AAjyLRgDILt5uLa0Qxg/viewform');
     if (archivos.bases) payload.append('basesPDF', archivos.bases);
     if (archivos.convocatoria) payload.append('convocatoriaPDF', archivos.convocatoria);
     if (archivos.formatos) payload.append('formatos', archivos.formatos);
 
     try {
-      if (editandoId) await api.put(`/convocatorias/${editandoId}`, payload);
-      else await api.post('/convocatorias', payload);
+      if (editandoId) {
+        await api.put(`/convocatorias/${editandoId}`, payload);
+        // Reload convocatoria to get updated file paths
+        const convRes = await api.get(`/convocatorias/${editandoId}`);
+        const convActualizada = convRes.data;
+        setArchivosExistentes({
+          bases: convActualizada.rutaBases || null,
+          convocatoria: convActualizada.rutaConvocatoriaPDF || null,
+          formatos: convActualizada.rutaFormatos || null,
+        });
+        // Update convocatoria in list
+        setConvocatorias((prev) => prev.map((c) => c.id === editandoId ? { ...c, ...convActualizada } : c));
+      } else {
+        const res = await api.post('/convocatorias', payload);
+        // Get the newly created convocatoria with file paths
+        const convRes = await api.get(`/convocatorias/${res.data.id}`);
+        const convCreada = convRes.data;
+        setArchivosExistentes({
+          bases: convCreada.rutaBases || null,
+          convocatoria: convCreada.rutaConvocatoriaPDF || null,
+          formatos: convCreada.rutaFormatos || null,
+        });
+        setConvocatorias((prev) => [convCreada, ...prev]);
+      }
       cerrarModal();
-      const res = await api.get('/convocatorias');
-      setConvocatorias(res.data);
     } catch (err) {
       const msg = err.response?.data?.mensaje || err.response?.data?.errores?.join(', ') || JSON.stringify(err.response?.data) || err.message;
       alert('Error al guardar la convocatoria: ' + msg);
@@ -265,7 +285,6 @@ export default function Convocatorias() {
     setSeccionActiva('general');
     setErrores({});
     setArchivos({ bases: null, convocatoria: null, formatos: null });
-    setArchivosExistentes({ bases: null, convocatoria: null, formatos: null });
   };
 
   const convocatoriasFiltradas = convocatorias.filter(
@@ -535,7 +554,8 @@ export default function Convocatorias() {
                       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
                         <FileText size={14} className="text-green-600" />
                         <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.bases.split('/').pop()}</span>
-                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/bases`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                        <button onClick={() => descargarArchivoConvocatoria(editandoId, 'bases', `bases.pdf`)} title="Descargar bases"
+                          className="text-green-600 hover:text-green-800"><Download size={14} /></button>
                       </div>
                     )}
                     <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, bases: e.target.files[0] })}
@@ -549,7 +569,8 @@ export default function Convocatorias() {
                       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
                         <FileText size={14} className="text-green-600" />
                         <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.convocatoria.split('/').pop()}</span>
-                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/convocatoria`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                        <button onClick={() => descargarArchivoConvocatoria(editandoId, 'convocatoria', `convocatoria.pdf`)} title="Descargar convocatoria"
+                          className="text-green-600 hover:text-green-800"><Download size={14} /></button>
                       </div>
                     )}
                     <input type="file" accept=".pdf" onChange={(e) => setArchivos({ ...archivos, convocatoria: e.target.files[0] })}
@@ -563,7 +584,8 @@ export default function Convocatorias() {
                       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
                         <FileText size={14} className="text-green-600" />
                         <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.formatos.split('/').pop()}</span>
-                        <a href={`${api.defaults.baseURL}/convocatorias/${editandoId}/archivos/formatos`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800"><Download size={14} /></a>
+                        <button onClick={() => descargarArchivoConvocatoria(editandoId, 'formatos', `formatos`)} title="Descargar formatos"
+                          className="text-green-600 hover:text-green-800"><Download size={14} /></button>
                       </div>
                     )}
                     <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => setArchivos({ ...archivos, formatos: e.target.files[0] })}

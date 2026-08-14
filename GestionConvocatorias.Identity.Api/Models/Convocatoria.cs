@@ -60,11 +60,20 @@ public class Convocatoria
     [StringLength(500)]
     public string? RutaBases { get; set; }
 
+    [StringLength(256)]
+    public string? NombreOriginalBases { get; set; }
+
     [StringLength(500)]
     public string? RutaConvocatoriaPDF { get; set; }
 
-    [StringLength(500)]
+    [StringLength(256)]
+    public string? NombreOriginalConvocatoriaPDF { get; set; }
+
+    [StringLength(2000)]
     public string? RutaFormatos { get; set; }
+
+    [StringLength(2000)]
+    public string? NombresOriginalesFormatos { get; set; }
 
     public ICollection<Proyecto>? Proyectos { get; set; }
 }

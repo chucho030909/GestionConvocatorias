@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, CheckCircle, Clock, FileText, Upload,
-  Users, Award, FolderOpen, Plus, ExternalLink, Package, Download, GitBranch, Settings, File
+  Users, Award, FolderOpen, Plus, ExternalLink, Package, Download, GitBranch, Settings, File, Eye, X
 } from 'lucide-react';
-import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, descargarArchivoAutenticado, descargarArchivoConvocatoria, crearRepositorio } from '../services/api';
+import api, { obtenerMiProyectoEnConvocatoria, crearProyecto, obtenerAvancesPorProyecto, crearAvance, descargarArchivo, descargarArchivoAutenticado, crearRepositorio } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 import CrearProyectoModal from '../components/CrearProyectoModal';
 import ListaAvances from '../components/ListaAvances';
@@ -12,6 +12,12 @@ import ListaAvances from '../components/ListaAvances';
 function formatearFecha(fecha) {
   if (!fecha) return '-';
   return new Date(fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function limpiarNombreArchivo(rutaONombre) {
+  if (!rutaONombre) return 'archivo';
+  const segments = rutaONombre.split(/[/\\]/);
+  return segments[segments.length - 1] || 'archivo';
 }
 
 function EstadoPill({ estado }) {
@@ -53,22 +59,22 @@ function EstadoProyectoPill({ estado }) {
   );
 }
 
-function DocumentoLink({ onClick, label }) {
-  if (!onClick) return <span className="text-sm text-gray-400 italic">No disponible</span>;
-  return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
-    >
-      <FileText size={16} className="text-gray-400" />
-      {label}
-      <Download size={14} className="text-gray-400 ml-auto" />
-    </button>
-  );
-}
-
-function VistaAdmin({ convocatoria }) {
+function VistaAdmin({ convocatoria, onPrevisualizar, onDescargarFormato, onDescargarBase, onDescargarConvocatoria }) {
   const categorias = (() => { try { return JSON.parse(convocatoria.categorias || '[]'); } catch { return []; } })();
+  const formatos = (() => {
+    if (!convocatoria.rutaFormatos) return [];
+    const rutas = convocatoria.rutaFormatos.split(';').filter(Boolean);
+    const nombres = (convocatoria.nombresOriginalesFormatos || '').split(';').filter(Boolean);
+    return rutas.map((ruta, idx) => ({
+      index: idx,
+      ruta,
+      nombreOriginal: idx < nombres.length ? nombres[idx] : null,
+      nombreLimpio: idx < nombres.length ? nombres[idx] : limpiarNombreArchivo(ruta),
+    }));
+  })();
+
+  const nombreBases = convocatoria.nombreOriginalBases || limpiarNombreArchivo(convocatoria.rutaBases);
+  const nombreConvocatoria = convocatoria.nombreOriginalConvocatoriaPDF || limpiarNombreArchivo(convocatoria.rutaConvocatoriaPDF);
 
   return (
     <div className="space-y-6">
@@ -185,20 +191,72 @@ function VistaAdmin({ convocatoria }) {
           Documentos
         </h3>
         <div className="space-y-3">
+          {/* Bases */}
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Bases</label>
-            <DocumentoLink onClick={convocatoria.rutaBases ? () => descargarArchivoConvocatoria(convocatoria.id, 'bases', 'bases.pdf') : null} label="Bases de la convocatoria" />
-            {convocatoria.rutaBases && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaBases.split('/').pop()}</p>}
+            {convocatoria.rutaBases ? (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                <FileText size={18} className="text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-700 flex-1 truncate">{nombreBases}</span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => onDescargarBase()} title="Descargar"
+                    className="p-1.5 rounded-md hover:bg-green-100 text-green-600 transition-colors">
+                    <Download size={15} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400 italic">No disponible</span>
+            )}
           </div>
+
+          {/* Convocatoria PDF */}
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Convocatoria PDF</label>
-            <DocumentoLink onClick={convocatoria.rutaConvocatoriaPDF ? () => descargarArchivoConvocatoria(convocatoria.id, 'convocatoria', 'convocatoria.pdf') : null} label="Documento de convocatoria" />
-            {convocatoria.rutaConvocatoriaPDF && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaConvocatoriaPDF.split('/').pop()}</p>}
+            {convocatoria.rutaConvocatoriaPDF ? (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                <FileText size={18} className="text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-700 flex-1 truncate">{nombreConvocatoria}</span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => onDescargarConvocatoria()} title="Descargar"
+                    className="p-1.5 rounded-md hover:bg-green-100 text-green-600 transition-colors">
+                    <Download size={15} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400 italic">No disponible</span>
+            )}
           </div>
+
+          {/* Formatos */}
           <div>
             <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Formatos</label>
-            <DocumentoLink onClick={convocatoria.rutaFormatos ? () => descargarArchivoConvocatoria(convocatoria.id, 'formatos', 'formatos') : null} label="Formatos descargables" />
-            {convocatoria.rutaFormatos && <p className="text-xs text-gray-400 mt-1 truncate">{convocatoria.rutaFormatos.split('/').pop()}</p>}
+            {formatos.length === 0 ? (
+              <span className="text-sm text-gray-400 italic">No hay formatos disponibles</span>
+            ) : (
+              <div className="space-y-2">
+                {formatos.map((archivo) => (
+                  <div key={archivo.index}
+                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                    <FileText size={18} className="text-gray-400 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 flex-1 truncate">{archivo.nombreLimpio}</span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => onPrevisualizar(archivo.nombreLimpio, archivo.index)}
+                        title="Pre-visualizar"
+                        className="p-1.5 rounded-md hover:bg-blue-100 text-blue-600 transition-colors">
+                        <Eye size={15} />
+                      </button>
+                      <button onClick={() => onDescargarFormato(archivo.nombreLimpio, archivo.index)}
+                        title="Descargar"
+                        className="p-1.5 rounded-md hover:bg-green-100 text-green-600 transition-colors">
+                        <Download size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -220,12 +278,37 @@ export default function ConvocatoriaDetalle() {
   const [documentoAvance, setDocumentoAvance] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [creandoRepo, setCreandoRepo] = useState(false);
+  const [archivoPrevisualizado, setArchivoPrevisualizado] = useState(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const [cargandoPreview, setCargandoPreview] = useState(false);
 
   const esAdmin = user?.roles?.some(r => [ROLES.ADMINISTRADOR, ROLES.COORDINADOR, ROLES.EVALUADOR].includes(r));
 
   useEffect(() => {
     cargarDatos();
   }, [id]);
+
+  useEffect(() => {
+    if (!archivoPrevisualizado) {
+      setPdfBlobUrl(null);
+      return;
+    }
+    let cancelado = false;
+    const cargarPdf = async () => {
+      setCargandoPreview(true);
+      try {
+        const url = `${api.defaults.baseURL}/convocatorias/${id}/formatos/${archivoPrevisualizado.index}`;
+        const res = await api.get(url, { responseType: 'blob' });
+        if (!cancelado) setPdfBlobUrl(URL.createObjectURL(res.data));
+      } catch {
+        if (!cancelado) setPdfBlobUrl(null);
+      } finally {
+        if (!cancelado) setCargandoPreview(false);
+      }
+    };
+    cargarPdf();
+    return () => { cancelado = true; };
+  }, [archivoPrevisualizado, id]);
 
   const cargarDatos = async () => {
     try {
@@ -291,6 +374,27 @@ export default function ConvocatoriaDetalle() {
     } finally {
       setCreandoRepo(false);
     }
+  };
+
+  const handlePrevisualizar = (nombreArchivo, indice) => {
+    setArchivoPrevisualizado({ nombre: nombreArchivo, index: indice });
+  };
+
+  const handleDescargarFormato = (nombreArchivo, indice) => {
+    const url = `${api.defaults.baseURL}/convocatorias/${id}/formatos/${indice}`;
+    descargarArchivoAutenticado(url, nombreArchivo);
+  };
+
+  const handleDescargarBase = () => {
+    const nombre = convocatoria.nombreOriginalBases || limpiarNombreArchivo(convocatoria.rutaBases) || 'bases.pdf';
+    const url = `${api.defaults.baseURL}/convocatorias/${id}/bases`;
+    descargarArchivoAutenticado(url, nombre);
+  };
+
+  const handleDescargarConvocatoria = () => {
+    const nombre = convocatoria.nombreOriginalConvocatoriaPDF || limpiarNombreArchivo(convocatoria.rutaConvocatoriaPDF) || 'convocatoria.pdf';
+    const url = `${api.defaults.baseURL}/convocatorias/${id}/convocatoria`;
+    descargarArchivoAutenticado(url, nombre);
   };
 
   if (cargando) {
@@ -376,7 +480,15 @@ export default function ConvocatoriaDetalle() {
       </div>
 
       {/* Vista Admin/Coordinador/Evaluador */}
-      {esAdmin && <VistaAdmin convocatoria={convocatoria} />}
+      {esAdmin && (
+        <VistaAdmin
+          convocatoria={convocatoria}
+          onPrevisualizar={handlePrevisualizar}
+          onDescargarFormato={handleDescargarFormato}
+          onDescargarBase={handleDescargarBase}
+          onDescargarConvocatoria={handleDescargarConvocatoria}
+        />
+      )}
 
       {/* Vista Estudiante: Mi Proyecto */}
       {!esAdmin && (
@@ -569,6 +681,50 @@ export default function ConvocatoriaDetalle() {
           onClose={() => setShowCrearProyecto(false)}
           onCreado={handleProyectoCreado}
         />
+      )}
+
+      {/* Panel de previsualización de formato */}
+      {archivoPrevisualizado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800 truncate pr-4">{archivoPrevisualizado.nombre}</h3>
+              <button onClick={() => setArchivoPrevisualizado(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden p-2 flex items-center justify-center">
+              {cargandoPreview ? (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                  <span className="text-sm text-gray-500">Cargando documento...</span>
+                </div>
+              ) : pdfBlobUrl ? (
+                <iframe
+                  src={pdfBlobUrl}
+                  className="w-full h-full min-h-[60vh] rounded-lg border border-gray-200"
+                  title={archivoPrevisualizado.nombre}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <FileText size={40} className="text-gray-300" />
+                  <span className="text-sm text-gray-500">No se pudo cargar la previsualización.</span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-3 border-t border-gray-100">
+              <button onClick={() => handleDescargarFormato(archivoPrevisualizado.nombre, archivoPrevisualizado.index)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                <Download size={14} /> Descargar
+              </button>
+              <button onClick={() => setArchivoPrevisualizado(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -203,7 +203,7 @@ public class ConvocatoriasController : ControllerBase
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Administrador,Coordinador")]
     public async Task<IActionResult> Crear([FromForm] Convocatoria convocatoria,
-        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, List<IFormFile>? formatos)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -214,8 +214,11 @@ public class ConvocatoriasController : ControllerBase
 
         var rutas = await GuardarArchivosConvocatoria(basesPDF, convocatoriaPDF, formatos);
         convocatoria.RutaBases = rutas.rutaBases;
+        convocatoria.NombreOriginalBases = rutas.nombreOriginalBases;
         convocatoria.RutaConvocatoriaPDF = rutas.rutaConvocatoria;
+        convocatoria.NombreOriginalConvocatoriaPDF = rutas.nombreOriginalConvocatoria;
         convocatoria.RutaFormatos = rutas.rutaFormatos;
+        convocatoria.NombresOriginalesFormatos = rutas.nombresOriginalesFormatos;
 
         _context.Convocatorias.Add(convocatoria);
         await _context.SaveChangesAsync();
@@ -227,7 +230,7 @@ public class ConvocatoriasController : ControllerBase
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Administrador,Coordinador")]
     public async Task<IActionResult> Actualizar(int id, [FromForm] Convocatoria convocatoria,
-        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, List<IFormFile>? formatos)
     {
         var existente = await _context.Convocatorias.FindAsync(id);
         if (existente is null)
@@ -258,9 +261,21 @@ public class ConvocatoriasController : ControllerBase
         existente.LinkRubrica = convocatoria.LinkRubrica;
 
         var rutas = await GuardarArchivosConvocatoria(basesPDF, convocatoriaPDF, formatos);
-        if (rutas.rutaBases != null) existente.RutaBases = rutas.rutaBases;
-        if (rutas.rutaConvocatoria != null) existente.RutaConvocatoriaPDF = rutas.rutaConvocatoria;
-        if (rutas.rutaFormatos != null) existente.RutaFormatos = rutas.rutaFormatos;
+        if (rutas.rutaBases != null)
+        {
+            existente.RutaBases = rutas.rutaBases;
+            existente.NombreOriginalBases = rutas.nombreOriginalBases;
+        }
+        if (rutas.rutaConvocatoria != null)
+        {
+            existente.RutaConvocatoriaPDF = rutas.rutaConvocatoria;
+            existente.NombreOriginalConvocatoriaPDF = rutas.nombreOriginalConvocatoria;
+        }
+        if (rutas.rutaFormatos != null)
+        {
+            existente.RutaFormatos = rutas.rutaFormatos;
+            existente.NombresOriginalesFormatos = rutas.nombresOriginalesFormatos;
+        }
 
         await _context.SaveChangesAsync();
         return Ok(existente);
@@ -330,10 +345,12 @@ public class ConvocatoriasController : ControllerBase
         return AppContext.BaseDirectory;
     }
 
-    private async Task<(string? rutaBases, string? rutaConvocatoria, string? rutaFormatos)> GuardarArchivosConvocatoria(
-        IFormFile? basesPDF, IFormFile? convocatoriaPDF, IFormFile? formatos)
+    private async Task<(string? rutaBases, string? nombreOriginalBases, string? rutaConvocatoria, string? nombreOriginalConvocatoria, string? rutaFormatos, string? nombresOriginalesFormatos)> GuardarArchivosConvocatoria(
+        IFormFile? basesPDF, IFormFile? convocatoriaPDF, List<IFormFile>? formatos)
     {
-        string? rutaBases = null, rutaConvocatoria = null, rutaFormatos = null;
+        string? rutaBases = null, nombreOriginalBases = null;
+        string? rutaConvocatoria = null, nombreOriginalConvocatoria = null;
+        string? rutaFormatos = null, nombresOriginalesFormatos = null;
         var carpeta = Path.Combine(ObtenerCarpetaArchivos(), "ArchivosConvocatorias");
         Directory.CreateDirectory(carpeta);
 
@@ -345,6 +362,7 @@ public class ConvocatoriasController : ControllerBase
             if (basesPDF.Length > 10 * 1024 * 1024)
                 throw new InvalidOperationException("El archivo de bases no debe exceder 10 MB.");
 
+            nombreOriginalBases = basesPDF.FileName;
             var nombre = $"bases_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
             var ruta = Path.Combine(carpeta, nombre);
             using var stream = new FileStream(ruta, FileMode.Create);
@@ -360,6 +378,7 @@ public class ConvocatoriasController : ControllerBase
             if (convocatoriaPDF.Length > 10 * 1024 * 1024)
                 throw new InvalidOperationException("El archivo de convocatoria no debe exceder 10 MB.");
 
+            nombreOriginalConvocatoria = convocatoriaPDF.FileName;
             var nombre = $"convocatoria_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
             var ruta = Path.Combine(carpeta, nombre);
             using var stream = new FileStream(ruta, FileMode.Create);
@@ -367,24 +386,37 @@ public class ConvocatoriasController : ControllerBase
             rutaConvocatoria = Path.Combine("ArchivosConvocatorias", nombre);
         }
 
-        // Validar y guardar formatos
-        if (formatos is { Length: > 0 })
+        // Validar y guardar formatos (múltiples archivos, rutas separadas por ';')
+        if (formatos is { Count: > 0 })
         {
-            var extension = Path.GetExtension(formatos.FileName).ToLowerInvariant();
             var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx" };
-            if (!extensionesPermitidas.Contains(extension))
-                throw new InvalidOperationException("Los formatos deben ser PDF, Word o Excel.");
-            if (formatos.Length > 10 * 1024 * 1024)
-                throw new InvalidOperationException("El archivo de formatos no debe exceder 10 MB.");
+            var rutasFormatos = new List<string>();
+            var nombresOriginales = new List<string>();
 
-            var nombre = $"formatos_{DateTime.UtcNow:yyyyMMddHHmmss}{extension}";
-            var ruta = Path.Combine(carpeta, nombre);
-            using var stream = new FileStream(ruta, FileMode.Create);
-            await formatos.CopyToAsync(stream);
-            rutaFormatos = Path.Combine("ArchivosConvocatorias", nombre);
+            foreach (var archivo in formatos.Where(a => a is { Length: > 0 }))
+            {
+                var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+                if (!extensionesPermitidas.Contains(extension))
+                    throw new InvalidOperationException($"El archivo '{archivo.FileName}' no tiene una extensión permitida (PDF, Word o Excel).");
+                if (archivo.Length > 10 * 1024 * 1024)
+                    throw new InvalidOperationException($"El archivo '{archivo.FileName}' no debe exceder 10 MB.");
+
+                nombresOriginales.Add(archivo.FileName);
+                var nombre = $"formatos_{DateTime.UtcNow:yyyyMMddHHmmss}_{rutasFormatos.Count}{extension}";
+                var ruta = Path.Combine(carpeta, nombre);
+                using var stream = new FileStream(ruta, FileMode.Create);
+                await archivo.CopyToAsync(stream);
+                rutasFormatos.Add(Path.Combine("ArchivosConvocatorias", nombre));
+            }
+
+            if (rutasFormatos.Count > 0)
+            {
+                rutaFormatos = string.Join(";", rutasFormatos);
+                nombresOriginalesFormatos = string.Join(";", nombresOriginales);
+            }
         }
 
-        return (rutaBases, rutaConvocatoria, rutaFormatos);
+        return (rutaBases, nombreOriginalBases, rutaConvocatoria, nombreOriginalConvocatoria, rutaFormatos, nombresOriginalesFormatos);
     }
 
     private static string ResolverRuta(string rutaRelativa)
@@ -415,13 +447,36 @@ public class ConvocatoriasController : ControllerBase
         if (convocatoria is null)
             return NotFound(new { mensaje = "Convocatoria no encontrada." });
 
-        string? ruta = tipo.ToLowerInvariant() switch
+        string? ruta = null;
+        string? nombreOriginal = null;
+
+        switch (tipo.ToLowerInvariant())
         {
-            "bases" => convocatoria.RutaBases,
-            "convocatoria" => convocatoria.RutaConvocatoriaPDF,
-            "formatos" => convocatoria.RutaFormatos,
-            _ => null
-        };
+            case "bases":
+                ruta = convocatoria.RutaBases;
+                nombreOriginal = convocatoria.NombreOriginalBases;
+                break;
+            case "convocatoria":
+                ruta = convocatoria.RutaConvocatoriaPDF;
+                nombreOriginal = convocatoria.NombreOriginalConvocatoriaPDF;
+                break;
+            case "formatos":
+                ruta = convocatoria.RutaFormatos;
+                break;
+            default:
+                if (tipo.StartsWith("formatos/", StringComparison.OrdinalIgnoreCase) &&
+                    int.TryParse(tipo.Split('/')[1], out var indice))
+                {
+                    var rutas = (convocatoria.RutaFormatos ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries);
+                    var nombres = (convocatoria.NombresOriginalesFormatos ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries);
+                    if (indice >= 0 && indice < rutas.Length)
+                    {
+                        ruta = rutas[indice];
+                        nombreOriginal = indice < nombres.Length ? nombres[indice] : null;
+                    }
+                }
+                break;
+        }
 
         var rutaResuelta = ResolverRuta(ruta);
 
@@ -437,8 +492,61 @@ public class ConvocatoriasController : ControllerBase
             _ => "application/octet-stream"
         };
 
+        var descargaNombre = nombreOriginal ?? Path.GetFileName(rutaResuelta);
         var bytes = await System.IO.File.ReadAllBytesAsync(rutaResuelta);
-        Response.Headers.Add("Content-Disposition", $"inline; filename=\"{Path.GetFileName(rutaResuelta)}\"");
-        return File(bytes, contentType, Path.GetFileName(rutaResuelta));
+        Response.Headers.Add("Content-Disposition", $"inline; filename=\"{descargaNombre}\"");
+        return File(bytes, contentType, descargaNombre);
+    }
+
+    [HttpGet("{id}/bases")]
+    [Authorize]
+    public async Task<IActionResult> DescargarBases(int id)
+    {
+        return await DescargarArchivoConvocatoria(id, "bases");
+    }
+
+    [HttpGet("{id}/convocatoria")]
+    [Authorize]
+    public async Task<IActionResult> DescargarConvocatoriaPDF(int id)
+    {
+        return await DescargarArchivoConvocatoria(id, "convocatoria");
+    }
+
+    [HttpGet("{id}/formatos/{idx}")]
+    [Authorize]
+    public async Task<IActionResult> DescargarFormatoPorIndice(int id, int idx)
+    {
+        return await DescargarArchivoConvocatoria(id, $"formatos/{idx}");
+    }
+
+    [HttpGet("{id}/archivos")]
+    [Authorize]
+    public async Task<IActionResult> ListarArchivosConvocatoria(int id)
+    {
+        var convocatoria = await _context.Convocatorias.FindAsync(id);
+        if (convocatoria is null)
+            return NotFound(new { mensaje = "Convocatoria no encontrada." });
+
+        var rutasFormatos = (convocatoria.RutaFormatos ?? "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries);
+        var nombresFormatos = (convocatoria.NombresOriginalesFormatos ?? "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries);
+
+        var archivos = new
+        {
+            bases = convocatoria.RutaBases != null
+                ? new { ruta = convocatoria.RutaBases, nombreOriginal = convocatoria.NombreOriginalBases ?? Path.GetFileName(convocatoria.RutaBases) }
+                : null,
+            convocatoria = convocatoria.RutaConvocatoriaPDF != null
+                ? new { ruta = convocatoria.RutaConvocatoriaPDF, nombreOriginal = convocatoria.NombreOriginalConvocatoriaPDF ?? Path.GetFileName(convocatoria.RutaConvocatoriaPDF) }
+                : null,
+            formatos = rutasFormatos.Select((ruta, idx) => new
+            {
+                ruta,
+                nombreOriginal = idx < nombresFormatos.Length ? nombresFormatos[idx] : Path.GetFileName(ruta)
+            }).ToArray()
+        };
+
+        return Ok(archivos);
     }
 }

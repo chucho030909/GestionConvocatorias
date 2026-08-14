@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, MoreHorizontal, X, ChevronRight, ChevronLeft, FileText, Download, Eye } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, X, ChevronRight, ChevronLeft, FileText, Download, Eye, Trash2 } from 'lucide-react';
 import api, { descargarArchivoConvocatoria } from '../services/api';
 import { useAuth, ROLES } from '../context/AuthContext';
 
@@ -67,22 +67,30 @@ function validarSeccionGeneral(f) {
   if (!f.titulo.trim()) e.titulo = 'El nombre es obligatorio.';
   else if (f.titulo.trim().length < 5) e.titulo = 'Mínimo 5 caracteres.';
   else if (f.titulo.trim().length > 150) e.titulo = 'Máximo 150 caracteres.';
+  if (!f.clave.trim()) e.clave = 'La clave es obligatoria.';
   if (!f.tipoConvocatoria) e.tipoConvocatoria = 'Seleccione un tipo.';
-  if (f.descripcion && f.descripcion.length > 500) e.descripcion = 'Máximo 500 caracteres.';
-  if (f.objetivo && f.objetivo.length > 500) e.objetivo = 'Máximo 500 caracteres.';
+  if (!f.descripcion.trim()) e.descripcion = 'La descripción es obligatoria.';
+  else if (f.descripcion.trim().length > 500) e.descripcion = 'Máximo 500 caracteres.';
+  if (!f.objetivo.trim()) e.objetivo = 'El objetivo es obligatorio.';
+  else if (f.objetivo.trim().length > 500) e.objetivo = 'Máximo 500 caracteres.';
   return e;
 }
 
 function validarSeccionFechas(f) {
   const e = {};
+  if (!f.fechaPublicacion) e.fechaPublicacion = 'La fecha de publicación es obligatoria.';
+  if (!f.fechaApertura) e.fechaApertura = 'La fecha de apertura es obligatoria.';
+  if (!f.fechaLimiteRegistro) e.fechaLimiteRegistro = 'La fecha límite de registro es obligatoria.';
+  if (!f.fechaCierre) e.fechaCierre = 'La fecha de cierre es obligatoria.';
+  if (!f.fechaEvaluacion) e.fechaEvaluacion = 'La fecha de evaluación es obligatoria.';
+  if (!f.fechaPublicacionResultados) e.fechaPublicacionResultados = 'La fecha de publicación de resultados es obligatoria.';
+
   const pub = f.fechaPublicacion;
   const apertura = f.fechaApertura;
   const limReg = f.fechaLimiteRegistro;
   const cierre = f.fechaCierre;
   const evaluacion = f.fechaEvaluacion;
   const pubRes = f.fechaPublicacionResultados;
-
-  if (!apertura) e.fechaApertura = 'La fecha de apertura es obligatoria.';
 
   if (pub && apertura && pub > apertura) e.fechaApertura = 'Debe ser igual o posterior a la fecha de publicación.';
   if (apertura && limReg && apertura > limReg) e.fechaLimiteRegistro = 'Debe ser igual o posterior a la apertura.';
@@ -117,9 +125,9 @@ export default function Convocatorias() {
     fechaPublicacion: '', fechaApertura: '', fechaLimiteRegistro: '', fechaEvaluacion: '',
     fechaCierre: '', fechaPublicacionResultados: '', categorias: [], estado: 'Activa',
     numeroMaximoProyectos: 50, numeroMaximoIntegrantes: 5, numeroEvaluadoresPorProyecto: 2,
-    escalaEvaluacion: 5,
+    escalaEvaluacion: 5, linkRubrica: '',
   });
-  const [archivos, setArchivos] = useState({ bases: null, convocatoria: null, formatos: null });
+  const [archivos, setArchivos] = useState({ bases: null, convocatoria: null, formatos: [] });
   const [archivosExistentes, setArchivosExistentes] = useState({ bases: null, convocatoria: null, formatos: null });
   const [seccionActiva, setSeccionActiva] = useState('general');
   const [errores, setErrores] = useState({});
@@ -156,6 +164,28 @@ export default function Convocatorias() {
     }));
   };
 
+  const MAX_FORMATOS = 3;
+
+  const handleFormatosChange = (e) => {
+    const nuevos = Array.from(e.target.files);
+    setArchivos((prev) => {
+      const combinados = [...prev.formatos, ...nuevos];
+      if (combinados.length > MAX_FORMATOS) {
+        alert(`Solo se permiten hasta ${MAX_FORMATOS} archivos. Se descartaron los excedentes.`);
+        return { ...prev, formatos: combinados.slice(0, MAX_FORMATOS) };
+      }
+      return { ...prev, formatos: combinados };
+    });
+    e.target.value = '';
+  };
+
+  const eliminarFormato = (index) => {
+    setArchivos((prev) => ({
+      ...prev,
+      formatos: prev.formatos.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const todosErrores = {
@@ -187,10 +217,15 @@ export default function Convocatorias() {
     payload.append('NumeroMaximoIntegrantes', Number(formData.numeroMaximoIntegrantes));
     payload.append('NumeroEvaluadoresPorProyecto', Number(formData.numeroEvaluadoresPorProyecto));
     payload.append('EscalaEvaluacion', Number(formData.escalaEvaluacion));
-    payload.append('LinkRubrica', 'https://docs.google.com/forms/d/e/1FAIpQLSflbor-6O_VoIweugafuXrM0akysL7AAjyLRgDILt5uLa0Qxg/viewform');
+    payload.append('LinkRubrica', formData.linkRubrica.trim());
     if (archivos.bases) payload.append('basesPDF', archivos.bases);
     if (archivos.convocatoria) payload.append('convocatoriaPDF', archivos.convocatoria);
-    if (archivos.formatos) payload.append('formatos', archivos.formatos);
+    // Nota: El backend actual espera UN solo campo 'formatos'.
+    // Si se envían múltiples archivos con la misma clave, solo el último se recibirá.
+    // Para soporte completo multi-archivos, el backend debe cambiar a recibir un array (formatos[]).
+    archivos.formatos.forEach((archivo) => {
+      payload.append('formatos', archivo);
+    });
 
     try {
       if (editandoId) {
@@ -253,6 +288,7 @@ export default function Convocatorias() {
       numeroMaximoIntegrantes: conv.numeroMaximoIntegrantes ?? 5,
       numeroEvaluadoresPorProyecto: conv.numeroEvaluadoresPorProyecto ?? 2,
       escalaEvaluacion: conv.escalaEvaluacion ?? 5,
+      linkRubrica: conv.linkRubrica || '',
     });
     setArchivosExistentes({
       bases: conv.rutaBases || null,
@@ -272,10 +308,11 @@ export default function Convocatorias() {
       fechaPublicacion: hoyISO(), fechaApertura: '', fechaLimiteRegistro: '', fechaEvaluacion: '',
       fechaCierre: '', fechaPublicacionResultados: '', categorias: [], estado: 'Activa',
       numeroMaximoProyectos: 50, numeroMaximoIntegrantes: 5, numeroEvaluadoresPorProyecto: 2,
-      escalaEvaluacion: 5,
+      escalaEvaluacion: 5, linkRubrica: '',
     });
     setSeccionActiva('general');
     setErrores({});
+    setArchivos({ bases: null, convocatoria: null, formatos: [] });
     setIsModalOpen(true);
   };
 
@@ -284,7 +321,7 @@ export default function Convocatorias() {
     setEditandoId(null);
     setSeccionActiva('general');
     setErrores({});
-    setArchivos({ bases: null, convocatoria: null, formatos: null });
+    setArchivos({ bases: null, convocatoria: null, formatos: [] });
   };
 
   const convocatoriasFiltradas = convocatorias.filter(
@@ -542,6 +579,13 @@ export default function Convocatorias() {
                       {campoError('numeroEvaluadoresPorProyecto')}
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL de Rúbrica (Google Forms)</label>
+                    <input type="url" name="linkRubrica" value={formData.linkRubrica} onChange={handleInputChange}
+                      placeholder="https://docs.google.com/forms/d/e/..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <p className="text-xs text-gray-400 mt-1">URL del formulario de evaluación para los evaluadores.</p>
+                  </div>
                 </>
               )}
 
@@ -579,8 +623,8 @@ export default function Convocatorias() {
                     <p className="text-xs text-gray-400 mt-1">Formato PDF. Tamaño máximo: 10 MB.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Formatos</label>
-                    {editandoId && archivosExistentes.formatos && !archivos.formatos && (
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Formatos (máx. 3 archivos)</label>
+                    {editandoId && archivosExistentes.formatos && archivos.formatos.length === 0 && (
                       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-2">
                         <FileText size={14} className="text-green-600" />
                         <span className="text-sm text-green-700 flex-1 truncate">{archivosExistentes.formatos.split('/').pop()}</span>
@@ -588,10 +632,24 @@ export default function Convocatorias() {
                           className="text-green-600 hover:text-green-800"><Download size={14} /></button>
                       </div>
                     )}
-                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => setArchivos({ ...archivos, formatos: e.target.files[0] })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200" />
-                    {archivos.formatos && <p className="text-xs text-green-600 mt-1">Nuevo archivo: {archivos.formatos.name}</p>}
-                    <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel.</p>
+                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onChange={handleFormatosChange}
+                      disabled={archivos.formatos.length >= MAX_FORMATOS}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-medium hover:file:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel. {archivos.formatos.length}/{MAX_FORMATOS} archivos seleccionados.</p>
+                    {archivos.formatos.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {archivos.formatos.map((archivo, idx) => (
+                          <li key={idx} className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                            <FileText size={14} className="text-gray-500" />
+                            <span className="text-sm text-gray-700 flex-1 truncate">{archivo.name}</span>
+                            <button type="button" onClick={() => eliminarFormato(idx)} title="Eliminar archivo"
+                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               )}
